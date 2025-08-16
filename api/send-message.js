@@ -1,15 +1,26 @@
-module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+// api/respond.js
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const { text } = req.body || {};
-  if (!text) return res.status(400).json({ error: "Missing text" });
+  if (!text) {
+    return res.status(400).json({ error: "Missing text" });
+  }
 
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
-  if (!OPENAI_API_KEY) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
+  if (!OPENAI_API_KEY) {
+    return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
+  }
 
   const messages = [
-    { role: "system", content: "You are MOOT AI, a rigorous moot court debate partner. Be concise, cite logic clearly, ask targeted follow-ups, and keep a professional, coach-like tone. Format arguments in bullet points with bold headings when helpful." },
+    {
+      role: "system",
+      content:
+        "You are MOOT AI, a rigorous moot court debate partner. Be concise, cite logic clearly, ask targeted follow-ups, and keep a professional, coach-like tone. Format arguments in bullet points with bold headings when helpful."
+    },
     { role: "user", content: text }
   ];
 
@@ -34,13 +45,19 @@ module.exports = async (req, res) => {
   try {
     const resp = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(requestBody)
     });
+
     const result = await resp.json();
 
     if (!result || !Array.isArray(result.output)) {
-      return res.status(500).json({ error: "Invalid response format from OpenAI", result });
+      return res
+        .status(500)
+        .json({ error: "Invalid response format from OpenAI", result });
     }
 
     let output = result.output.find(o => o.type === "message");
@@ -55,18 +72,28 @@ module.exports = async (req, res) => {
     try {
       const tts = await fetch("https://api.openai.com/v1/audio/speech", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "tts-1", input: outText, voice: "alloy", response_format: "mp3" })
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "tts-1",
+          input: outText,
+          voice: "alloy",
+          response_format: "mp3"
+        })
       });
       const buf = Buffer.from(await tts.arrayBuffer());
       audioBase64 = buf.toString("base64");
-    } catch (e) {
-      console.error("TTS failed:", e);
+    } catch (err) {
+      console.error("TTS failed:", err);
     }
 
-    res.status(200).json({ assistantResponse: outText, assistantAudio: audioBase64 });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Error generating response." });
+    return res
+      .status(200)
+      .json({ assistantResponse: outText, assistantAudio: audioBase64 });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Error generating response." });
   }
-};
+}
