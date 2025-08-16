@@ -8,6 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css" />
+  <style>
+    /* Minimal extra polish for the new controls */
+    .top-actions { display:flex; gap:10px; align-items:center; }
+    .toggle { border:1px solid var(--edge, #1f2937); background:transparent; color:inherit; padding:8px 12px; border-radius:10px; cursor:pointer; }
+    .toggle.live-on { border-color:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.25); }
+    .live-dot { width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block; margin-right:8px; box-shadow:0 0 10px rgba(239,68,68,.6); vertical-align:middle; }
+    .messages audio { display:none; } /* hide native player; we auto-play */
+  </style>
 </head>
 <body>
   <div class="app">
@@ -16,13 +24,16 @@
         <div class="logo-dot"></div>
         <h1>MOOT AI</h1>
       </div>
-      <div class="actions">
+      <div class="top-actions">
         <label class="file-upload">
           <input id="documentInput" type="file" accept=".pdf,.txt,.doc,.docx,.md" />
           <span>Attach Evidence</span>
         </label>
         <button id="uploadBtn" class="ghost">Upload</button>
         <button id="listBtn" class="ghost">Sources</button>
+        <button id="liveToggle" class="toggle" title="Auto-mic after assistant finishes">
+          <span class="live-dot" style="display:none;"></span> Live Mode
+        </button>
       </div>
     </header>
 
@@ -35,8 +46,8 @@
           <li><button class="chip" data-mode="coach">Coach</button></li>
         </ul>
         <div class="recorder">
-          <button id="recordBtn" class="primary">🎙️ Hold to Record</button>
-          <p class="hint">Or just type below. Audio is transcribed on-device & sent securely.</p>
+          <button id="recordBtn" class="primary" title="Hold to record; Spacebar also works">🎙️ Hold to Record</button>
+          <p class="hint">Tip: press and hold the Spacebar to talk. Release to send.</p>
         </div>
         <div class="sources" id="vectorList"></div>
       </aside>
