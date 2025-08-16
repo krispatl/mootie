@@ -1,5 +1,6 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
   if (!OPENAI_API_KEY || !VECTOR_STORE_ID) return res.status(200).json({ vectors: [] });
@@ -26,4 +27,4 @@ export default async function handler(req, res) {
     console.error("Vector list error:", e);
     res.status(200).json({ vectors: [] });
   }
-}
+};
