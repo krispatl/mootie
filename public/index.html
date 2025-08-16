@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MOOT AI — Debate Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-dot"></div>
+        <h1>MOOT AI</h1>
+      </div>
+      <div class="actions">
+        <label class="file-upload">
+          <input id="documentInput" type="file" accept=".pdf,.txt,.doc,.docx,.md" />
+          <span>Attach Evidence</span>
+        </label>
+        <button id="uploadBtn" class="ghost">Upload</button>
+        <button id="listBtn" class="ghost">Sources</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <aside class="sidebar">
+        <h2>Coach Modes</h2>
+        <ul>
+          <li><button class="chip active" data-mode="judge">Judge</button></li>
+          <li><button class="chip" data-mode="opposition">Opposition</button></li>
+          <li><button class="chip" data-mode="coach">Coach</button></li>
+        </ul>
+        <div class="recorder">
+          <button id="recordBtn" class="primary">🎙️ Hold to Record</button>
+          <p class="hint">Or just type below. Audio is transcribed on-device & sent securely.</p>
+        </div>
+        <div class="sources" id="vectorList"></div>
+      </aside>
+
+      <section class="chat">
+        <div id="conversation" class="messages"></div>
+        <form id="chatForm" class="composer">
+          <input id="userInput" class="input" type="text" placeholder="Make your argument, ask for cross, or request a drill…" autocomplete="off" />
+          <button id="sendBtn" class="send" type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Built for realtime moot court practice. Type or talk. Upload briefs to ground the debate.</span>
+    </footer>
+  </div>
+
+  <script src="/client.js"></script>
+</body>
+</html>
