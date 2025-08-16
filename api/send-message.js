@@ -1,13 +1,13 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  const { text, sessionId } = req.body || {};
+
+  const { text } = req.body || {};
   if (!text) return res.status(400).json({ error: "Missing text" });
 
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
   if (!OPENAI_API_KEY) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
 
-  // Build Responses API request
   const messages = [
     { role: "system", content: "You are MOOT AI, a rigorous moot court debate partner. Be concise, cite logic clearly, ask targeted follow-ups, and keep a professional, coach-like tone. Format arguments in bullet points with bold headings when helpful." },
     { role: "user", content: text }
@@ -17,7 +17,13 @@ export default async function handler(req, res) {
     model: "gpt-4o",
     input: messages,
     tools: [
-      { type: "file_search", vector_store_ids: VECTOR_STORE_ID ? [VECTOR_STORE_ID] : [], filters: null, max_num_results: 20, ranking_options: { ranker: "auto", score_threshold: 0 } }
+      {
+        type: "file_search",
+        vector_store_ids: VECTOR_STORE_ID ? [VECTOR_STORE_ID] : [],
+        filters: null,
+        max_num_results: 20,
+        ranking_options: { ranker: "auto", score_threshold: 0 }
+      }
     ],
     stream: false,
     store: false,
@@ -32,9 +38,11 @@ export default async function handler(req, res) {
       body: JSON.stringify(requestBody)
     });
     const result = await resp.json();
+
     if (!result || !Array.isArray(result.output)) {
       return res.status(500).json({ error: "Invalid response format from OpenAI", result });
     }
+
     let output = result.output.find(o => o.type === "message");
     let outText = "No text available.";
     if (output && output.content) {
@@ -42,7 +50,7 @@ export default async function handler(req, res) {
       if (chunk && chunk.text) outText = chunk.text;
     }
 
-    // TTS (optional)
+    // Optional TTS
     let audioBase64 = null;
     try {
       const tts = await fetch("https://api.openai.com/v1/audio/speech", {
@@ -53,7 +61,6 @@ export default async function handler(req, res) {
       const buf = Buffer.from(await tts.arrayBuffer());
       audioBase64 = buf.toString("base64");
     } catch (e) {
-      // non-fatal
       console.error("TTS failed:", e);
     }
 
@@ -62,4 +69,4 @@ export default async function handler(req, res) {
     console.error(e);
     res.status(500).json({ error: "Error generating response." });
   }
-}
+};
