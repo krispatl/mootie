@@ -1,6 +1,6 @@
 # MOOT AI (Vercel)
 
-A minimal, Vercel-ready deployment of your MOOT AI debate practice tool.
+MOOT AI debate practice tool.
 
 ## Deploy
 
@@ -17,5 +17,4 @@ A minimal, Vercel-ready deployment of your MOOT AI debate practice tool.
 - `GET  /api/vector-store` — lists files currently attached to the Vector Store
 
 ## Notes
-- This version avoids ffmpeg by sending the webm blob directly to Whisper.
-- The UI is refreshed but keeps the same core hooks.
+
