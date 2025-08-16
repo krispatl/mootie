@@ -1,8 +1,5 @@
-// Lists files attached to your Vector Store
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
@@ -11,21 +8,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // list file IDs in the vector store
     const list = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
-      method: "GET",
       headers: { Authorization: `Bearer ${OPENAI_API_KEY}` }
     });
     const data = await list.json();
-    if (!Array.isArray(data?.data)) {
-      return res.status(200).json({ vectors: [] });
-    }
+    if (!Array.isArray(data?.data)) return res.status(200).json({ vectors: [] });
 
-    // look up filenames to display
     const filesWithNames = await Promise.all(
       data.data.map(async (file) => {
         const fr = await fetch(`https://api.openai.com/v1/files/${file.id}`, {
-          method: "GET",
           headers: { Authorization: `Bearer ${OPENAI_API_KEY}` }
         });
         const fd = await fr.json();
