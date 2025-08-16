@@ -1,6 +1,4 @@
-export const config = { api: { bodyParser: false } };
-
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -20,7 +18,6 @@ export default async function handler(req, res) {
     const filePart = parts.find(p => p.includes('name="document"'));
     if (!filePart) return res.status(400).json({ error: "No 'document' field found" });
 
-    // Extract filename
     const filenameMatch = filePart.match(/filename="([^"]+)"/);
     const filename = filenameMatch ? filenameMatch[1] : "document.txt";
 
@@ -28,7 +25,6 @@ export default async function handler(req, res) {
     const fileBinary = filePart.slice(headerEnd + 4, filePart.lastIndexOf("\r\n"));
     const fileBuffer = Buffer.from(fileBinary, "binary");
 
-    // 1) Upload raw file to OpenAI Files
     const form = new FormData();
     form.append("file", new Blob([fileBuffer]), filename);
     form.append("purpose", "assistants");
@@ -41,7 +37,6 @@ export default async function handler(req, res) {
     const uploaded = await uploadResp.json();
     if (!uploaded || !uploaded.id) return res.status(500).json({ error: "File upload failed", uploaded });
 
-    // 2) Attach file to vector store
     const attachResp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
       method: "POST",
       headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
@@ -55,4 +50,4 @@ export default async function handler(req, res) {
     console.error("Upload error:", e);
     res.status(500).json({ error: "Failed to upload and attach file." });
   }
-}
+};
