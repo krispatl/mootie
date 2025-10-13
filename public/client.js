@@ -17,6 +17,9 @@
   const liveToggle = document.getElementById('liveToggle');
   const vectorList = document.getElementById('vectorList');
   const modeChips = document.getElementById('modeChips');
+  const transcriptToggle = document.getElementById('transcriptToggle');
+  const exportBtn = document.getElementById('exportBtn');
+  const transcriptDrawer = document.getElementById('transcriptDrawer');
 
   // Session state
   let mediaRecorder;
@@ -27,6 +30,9 @@
   let autoPlay = true; // auto‑play assistant audio when allowed
   let liveMode = false; // automatically record after assistant finishes
   const liveRecordMs = 7000; // default length for timed recordings
+
+  // Keep a list of all messages for transcript export and bookmarking
+  const messagesData = [];
 
   // Track whether the user has interacted with the page at least once.
   let userInteracted = false;
@@ -71,7 +77,15 @@
     card.className = `message ${role}`;
     const meta = document.createElement('div');
     meta.className = 'meta';
+    // Capture timestamp for the message
+    const now = new Date();
+    messagesData.push({ role, text, timestamp: now.toISOString() });
     meta.textContent = role === 'user' ? 'You' : 'MOOT AI';
+    // Append a small timestamp element
+    const timeEl = document.createElement('span');
+    timeEl.className = 'timestamp';
+    timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    meta.appendChild(timeEl);
     const body = document.createElement('div');
     body.className = 'body';
     // Use marked.js for Markdown rendering if available, otherwise fall back
@@ -112,6 +126,108 @@
     }
     conversation.appendChild(card);
     conversation.scrollTop = conversation.scrollHeight;
+    // Update the transcript drawer when a new message arrives
+    updateTranscript();
+  }
+
+  /**
+   * Render the transcript drawer with all recorded messages. Each
+   * transcript entry shows the time and a truncated preview of the text.
+   */
+  function updateTranscript() {
+    if (!transcriptDrawer) return;
+    transcriptDrawer.innerHTML = '';
+    messagesData.forEach((msg, idx) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      row.textContent = `${time} • ${msg.role.toUpperCase()}: ${msg.text.slice(0, 40)}${msg.text.length > 40 ? '…' : ''}`;
+      row.title = msg.text;
+      // Scroll the conversation to this message when clicked
+      row.addEventListener('click', () => {
+        const cards = conversation.querySelectorAll('.message');
+        if (cards[idx]) {
+          cards[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+      transcriptDrawer.appendChild(row);
+    });
+  }
+
+  /**
+   * Create and trigger a download of the transcript as a text file.
+   */
+  function downloadTranscript() {
+    if (messagesData.length === 0) {
+      alert('No conversation to export yet.');
+      return;
+    }
+    let content = '';
+    messagesData.forEach((msg) => {
+      const time = new Date(msg.timestamp).toLocaleString();
+      content += `${time} - ${msg.role.toUpperCase()}:\n${msg.text}\n\n`;
+    });
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `moot_transcript_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Upload a file to the vector store. This helper is used both by
+   * the upload button and drag‑and‑drop handlers.
+   */
+  async function uploadDocument(file) {
+    if (!file) {
+      alert('Choose a file first.');
+      return;
+    }
+    const form = new FormData();
+    form.append('document', file, file.name);
+    try {
+      const res = await fetch('/api/upload-document', { method: 'POST', body: form });
+      if (!res.ok) {
+        const raw = await res.text();
+        alert('Upload error: ' + raw.slice(0, 200));
+        return;
+      }
+      const data = await res.json();
+      if (data.error) {
+        alert('Upload error: ' + data.error);
+      } else {
+        alert('Uploaded and attached.');
+        await refreshVectorList(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed.');
+    }
+  }
+
+  /**
+   * Delete a file from the vector store by ID.
+   * @param {string} fileId
+   */
+  async function deleteFile(fileId) {
+    if (!fileId) return;
+    if (!confirm('Delete this source from the vector store?')) return;
+    try {
+      const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, { method: 'DELETE' });
+      const out = await res.json();
+      if (!res.ok || out?.error) {
+        alert('Delete failed: ' + (out?.error || res.status));
+      } else {
+        await refreshVectorList(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Delete failed.');
+    }
   }
 
   /**
@@ -335,12 +451,24 @@
       data.vectors.forEach((f) => {
         const row = document.createElement('div');
         row.className = 'item';
+        // Dot indicator
         const dot = document.createElement('span');
         dot.className = 'live-dot';
         row.appendChild(dot);
+        // File name
         const name = document.createElement('span');
         name.textContent = f.filename;
         row.appendChild(name);
+        // Delete button
+        const del = document.createElement('span');
+        del.className = 'delete-icon';
+        del.textContent = '✕';
+        del.title = 'Remove file';
+        del.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          deleteFile(f.id);
+        });
+        row.appendChild(del);
         vectorList.appendChild(row);
       });
     } catch (err) {
@@ -422,6 +550,50 @@
       if (mode) setCoachMode(mode);
     }
   });
+
+  // Show or hide the transcript drawer when the Transcript button is clicked
+  if (transcriptToggle) {
+    transcriptToggle.addEventListener('click', () => {
+      if (!transcriptDrawer) return;
+      // Toggle display property between none and block. When
+      // unspecified (''), treat as hidden to initialise collapsed state.
+      const isHidden = !transcriptDrawer.style.display || transcriptDrawer.style.display === 'none';
+      transcriptDrawer.style.display = isHidden ? 'block' : 'none';
+    });
+  }
+
+  // Trigger a download of the transcript text when Export is clicked
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      downloadTranscript();
+    });
+  }
+
+  // Drag‑and‑drop support for uploading documents. The default browser
+  // behaviour (opening the file) is prevented. Only the first file is
+  // used. You can drag files anywhere on the page.
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((evt) => {
+    document.addEventListener(
+      evt,
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      false
+    );
+  });
+  document.addEventListener(
+    'drop',
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        uploadDocument(files[0]);
+      }
+    },
+    false
+  );
 
   // Initial load: fetch vector list and set coach mode
   refreshVectorList(false);

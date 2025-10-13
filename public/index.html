@@ -39,6 +39,8 @@
           <!-- Buttons for upload, listing sources, and toggling live mode -->
           <button id="uploadBtn" class="ghost">Upload</button>
           <button id="listBtn" class="ghost">Sources</button>
+          <button id="transcriptToggle" class="ghost">Transcript</button>
+          <button id="exportBtn" class="ghost">Export</button>
           <button id="liveToggle" class="toggle" title="Auto‑mic after assistant finishes">
             <span class="live-dot" style="display: none"></span>
             Live Mode
@@ -62,6 +64,8 @@
             <p class="hint">Tip: press and hold the Spacebar to talk. Release to send.</p>
           </div>
           <div class="sources" id="vectorList" style="display: none"></div>
+          <!-- Collapsible transcript drawer: populated by client.js -->
+          <div class="transcript" id="transcriptDrawer" style="display:none;"></div>
         </aside>
         <section class="chat">
           <div id="conversation" class="messages"></div>
