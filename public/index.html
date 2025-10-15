@@ -1,81 +1,95 @@
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mootie — AI Moot Coach</title>
-  <meta name="theme-color" content="#0b0f19" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body data-mode="coach">
-  <div class="bg-wire"></div>
-  <div class="bg-grid"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MOOT AI — Debate Practice</title>
+    <!-- Import the Inter font from Google Fonts. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
+    <!-- Custom styles for the app -->
+    <link rel="stylesheet" href="./style.css" />
+    <!-- Minimal extra styling for older browsers that do not support backdrop‑filter. -->
+    <style>
+      /* Hide the native audio controls until a user interaction to comply with
+         autoplay policies on some mobile devices. This is overridden in JS. */
+      .messages audio[controls] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- Top bar containing branding and primary actions -->
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo-dot"></div>
+          <h1>MOOT AI</h1>
+        </div>
+        <div class="actions">
+          <!-- Hidden file input for uploading evidence. The corresponding button
+               triggers the click on this input via JS. -->
+          <label class="file-upload">
+            <input id="documentInput" type="file" accept=".pdf,.txt,.doc,.docx,.md" />
+            <span>Attach Evidence</span>
+          </label>
+          <!-- Buttons for upload, listing sources, and toggling live mode -->
+          <button id="uploadBtn" class="ghost">Upload</button>
+          <button id="listBtn" class="ghost">Sources</button>
+          <button id="transcriptToggle" class="ghost">Transcript</button>
+          <button id="exportBtn" class="ghost">Export</button>
+          <button id="liveToggle" class="toggle" title="Auto‑mic after assistant finishes">
+            <span class="live-dot" style="display: none"></span>
+            Live Mode
+          </button>
+        </div>
+      </header>
 
-  <header>
-    <div class="wrap nav">
-      <div class="logo">
-        <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <defs><linearGradient id="g" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#7dd3fc"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
-          <rect x="2" y="2" width="28" height="28" rx="7" stroke="url(#g)" stroke-width="2"></rect>
-          <path d="M9 16h14M16 9v14" stroke="url(#g)" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <span style="font-family:Orbitron,Inter">Mootie</span>
-      </div>
+      <!-- Main content split into sidebar and chat area -->
+      <main class="content">
+        <aside class="sidebar">
+          <h2>Coach Modes</h2>
+          <ul id="modeChips">
+            <li><button class="chip active" data-mode="judge">Judge</button></li>
+            <li><button class="chip" data-mode="opposition">Opposition</button></li>
+            <li><button class="chip" data-mode="coach">Coach</button></li>
+          </ul>
+          <div class="recorder">
+            <button id="recordBtn" class="primary" title="Hold to record; Spacebar also works">
+              🎙️ Hold to Record
+            </button>
+            <p class="hint">Tip: press and hold the Spacebar to talk. Release to send.</p>
+          </div>
+          <div class="sources" id="vectorList" style="display: none"></div>
+          <!-- Collapsible transcript drawer: populated by client.js -->
+          <div class="transcript" id="transcriptDrawer" style="display:none;"></div>
+        </aside>
+        <section class="chat">
+          <div id="conversation" class="messages"></div>
+          <form id="chatForm" class="composer">
+            <input
+              id="userInput"
+              class="input"
+              type="text"
+              placeholder="Make your argument, ask for cross, or request a drill…"
+              autocomplete="off"
+            />
+            <button id="sendBtn" class="send" type="submit">Send</button>
+          </form>
+        </section>
+      </main>
 
-      <div class="controls">
-        <button class="btn ghost" id="modeJudge">Judge</button>
-        <button class="btn ghost" id="modeOpp">Opposition</button>
-        <button class="btn" id="modeCoach">Coach</button>
-      </div>
+      <footer class="footer">
+        <span
+          >Built for realtime moot court practice. Type or talk. Upload briefs to ground the
+          debate.</span
+        >
+      </footer>
     </div>
-  </header>
-
-  <main class="wrap app">
-    <section class="panel pad">
-      <div class="messages" id="messages" aria-live="polite"></div>
-
-      <div class="meta small" id="typingWrap" style="display:none">
-        <div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-        <span>thinking…</span>
-      </div>
-
-      <div class="input">
-        <button class="icon-btn" id="btnRecord" title="Hold to record">🎙️</button>
-        <textarea id="text" rows="2" placeholder="Type or hold mic to speak…"></textarea>
-        <button class="btn" id="send">Send</button>
-        <button class="icon-btn" id="btnExport" title="Export transcript">⬇️</button>
-      </div>
-
-      <div class="canvas-wrap">
-        <canvas id="vizWave"></canvas>
-      </div>
-    </section>
-
-    <aside class="panel side">
-      <div class="pad">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong>Grounding Sources</strong>
-          <label class="small"><input type="file" id="file" multiple style="display:none"><span class="btn ghost" id="choose">Upload</span></label>
-        </div>
-        <div class="progress" id="upProg" style="display:none"><div class="bar" id="upBar"></div></div>
-      </div>
-      <div class="pad" id="files"></div>
-
-      <div class="pad">
-        <strong>Session Tools</strong>
-        <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
-          <button class="btn ghost" id="btnScore">Rubric Score</button>
-          <button class="btn ghost" id="btnNotes">AI Notes</button>
-        </div>
-        <div class="bars" id="scoreBars" style="margin-top:1rem"></div>
-      </div>
-    </aside>
-  </main>
-
-  <script src="./client.js" type="module"></script>
-</body>
+    <!-- Client-side logic -->
+    <script src="./client.js"></script>
+  </body>
 </html>
