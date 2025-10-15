@@ -17,45 +17,55 @@ export default async function handler(req, res) {
 
   try {
     const contentType = req.headers['content-type'] || '';
-    if (!contentType.includes('multipart/form-data')) {
-      return res.status(400).json({ error: 'Expected multipart/form-data' });
+
+    // Create a buffer from the incoming request if needed.  We'll parse
+    // different formats depending on the content type.
+    let fileBuffer;
+    // If the request is multipart/form-data, extract the `audio` field.
+    if (contentType.includes('multipart/form-data')) {
+      const boundaryToken = contentType.split('boundary=')[1];
+      if (!boundaryToken) {
+        return res.status(400).json({ error: 'Malformed multipart/form-data (no boundary)' });
+      }
+      const boundary = '--' + boundaryToken;
+      // Read full body
+      let raw = Buffer.alloc(0);
+      for await (const chunk of req) raw = Buffer.concat([raw, chunk]);
+      const parts = raw.toString('binary').split(boundary);
+      const filePart = parts.find((p) => p.includes('name="audio"') || p.includes('name="file"'));
+      if (!filePart) {
+        return res.status(400).json({ error: "No audio field found" });
+      }
+      const headerEnd = filePart.indexOf('\r\n\r\n');
+      if (headerEnd === -1) {
+        return res.status(400).json({ error: 'Malformed multipart section' });
+      }
+      const bodyBin = filePart.slice(headerEnd + 4, filePart.lastIndexOf('\r\n'));
+      fileBuffer = Buffer.from(bodyBin, 'binary');
+    } else if (contentType.includes('application/json')) {
+      // Newer clients may post a JSON body with a base64‑encoded audio string.
+      const { audio } = req.body || {};
+      if (!audio || typeof audio !== 'string') {
+        return res.status(400).json({ error: 'Missing audio data' });
+      }
+      // Support data URIs (e.g. "data:audio/webm;base64,...") and plain base64
+      const base64String = audio.includes(',') ? audio.split(',')[1] : audio;
+      try {
+        fileBuffer = Buffer.from(base64String, 'base64');
+      } catch {
+        return res.status(400).json({ error: 'Invalid base64 audio' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Unsupported content-type' });
     }
-
-    // Extract boundary token from the multipart header. Without this we
-    // cannot parse the incoming body.
-    const boundaryToken = contentType.split('boundary=')[1];
-    if (!boundaryToken) {
-      return res.status(400).json({ error: 'Malformed multipart/form-data (no boundary)' });
+    // Ensure we have a buffer to send.
+    if (!fileBuffer || fileBuffer.length === 0) {
+      return res.status(400).json({ error: 'No audio content found' });
     }
-    const boundary = '--' + boundaryToken;
-
-    // Read the entire request body into a buffer. This allows us to
-    // manually split the sections. For large files this could be
-    // memory‑intensive, but the typical audio sample is short.
-    let raw = Buffer.alloc(0);
-    for await (const chunk of req) raw = Buffer.concat([raw, chunk]);
-
-    // Split the body by the boundary and look for the `audio` part.
-    const parts = raw.toString('binary').split(boundary);
-    const filePart = parts.find((p) => p.includes('name="audio"'));
-    if (!filePart) {
-      return res.status(400).json({ error: "No 'audio' field found" });
-    }
-
-    // Separate the headers from the body of the file part.
-    const headerEnd = filePart.indexOf('\r\n\r\n');
-    if (headerEnd === -1) {
-      return res.status(400).json({ error: 'Malformed multipart section' });
-    }
-    const bodyBin = filePart.slice(headerEnd + 4, filePart.lastIndexOf('\r\n'));
-    const fileBuffer = Buffer.from(bodyBin, 'binary');
-
-    // Build the form data for Whisper. Node 18+ provides global
-    // FormData/Blob; if unavailable you may need to import them.
+    // Build form data for Whisper; Node 18+ provides FormData/Blob globally.
     const form = new FormData();
     form.append('file', new Blob([fileBuffer], { type: 'audio/webm' }), 'audio.webm');
     form.append('model', 'whisper-1');
-
     const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
@@ -63,7 +73,6 @@ export default async function handler(req, res) {
       },
       body: form,
     });
-
     if (!resp.ok) {
       const text = await resp.text();
       return res

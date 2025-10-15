@@ -11,11 +11,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Destructure the user input from the request body. In future this
-  // could be expanded to include a session ID or coach mode.
-  const { text } = req.body || {};
-  if (!text || typeof text !== 'string' || !text.trim()) {
-    return res.status(400).json({ error: 'Missing or invalid text' });
+  // Destructure the user input from the request body.  Newer clients may
+  // send a `message` or `prompt` field instead of `text`.  We fall back
+  // to whichever string field is provided.  This allows older and newer
+  // front‑ends to coexist without triggering a 400 response.
+  const { text, message, prompt } = req.body || {};
+  const inputText = text || message || prompt;
+  if (!inputText || typeof inputText !== 'string' || !inputText.trim()) {
+    return res.status(400).json({ error: 'Missing or invalid message' });
   }
 
   // Pull necessary environment variables. Without these the request
@@ -34,7 +37,9 @@ export default async function handler(req, res) {
       content:
         'You are MOOT AI, a rigorous moot court debate partner. Be concise, cite logic clearly, ask targeted follow‑ups, and keep a professional, coach‑like tone. Format arguments in bullet points with bold headings when helpful.',
     },
-    { role: 'user', content: text },
+    // Use the resolved inputText for the user message.  The original
+    // `text` field is still accepted for backwards compatibility.
+    { role: 'user', content: inputText },
   ];
 
   // Build the request payload for OpenAI. File search is enabled
