@@ -57,6 +57,18 @@
         <div class="bar"><div class="fill" style="width:0%"></div></div>
         <span class="value">0</span>
       </div>
+      <!-- Debate status and progress bar (hidden until debate mode is active) -->
+      <div id="debateStatus" class="debate-status hidden">
+        <div class="debate-info">
+          <span id="roundLabel">Opening</span>
+          •
+          <span id="turnLabel">Your Turn</span>
+        </div>
+        <div class="debate-progress">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <button id="nextRoundBtn" class="next-round-btn hidden">Next Round</button>
+      </div>
     </section>
 
     <main class="main">
@@ -71,6 +83,7 @@
         <div class="panel transcript">
           <h3>Transcript &amp; Analytics</h3>
           <div id="transcriptList" class="transcript-list"></div>
+          <button id="coachFeedbackBtn" class="feedback-btn">Coach Feedback</button>
           <button id="exportTranscript" class="export-btn">Export Transcript</button>
         </div>
       </aside>

@@ -8,23 +8,23 @@
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
   let body;
   try {
     body = req.body || await parseJSON(req);
   } catch (err) {
-    return res.status(400).json({ error: 'Invalid JSON body' });
+    return res.status(400).json({ success: false, error: 'Invalid JSON body' });
   }
   const userInput = body.text || body.message || body.prompt || '';
   const mode = body.mode || 'coach';
   if (!userInput) {
-    return res.status(400).json({ error: 'Missing text' });
+    return res.status(400).json({ success: false, error: 'Missing text' });
   }
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
   if (!OPENAI_API_KEY) {
-    return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
+    return res.status(500).json({ success: false, error: 'Missing OPENAI_API_KEY' });
   }
   // Construct system prompt based on mode
   const systemPrompt = getSystemPrompt(mode);
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     });
     const result = await resp.json();
     if (!result || !Array.isArray(result.output)) {
-      return res.status(500).json({ error: 'Invalid response format from OpenAI', result });
+      return res.status(500).json({ success: false, error: 'Invalid response format from OpenAI', result });
     }
     // Extract assistant text
     let outText = 'No response.';
@@ -93,10 +93,10 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error('TTS failed:', err);
     }
-    return res.status(200).json({ assistantResponse: outText, assistantAudio: audioBase64, references: citations });
+    return res.status(200).json({ success: true, data: { assistantResponse: outText, assistantAudio: audioBase64, references: citations } });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Error generating response.' });
+    return res.status(500).json({ success: false, error: 'Error generating response.' });
   }
 }
 

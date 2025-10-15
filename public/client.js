@@ -21,7 +21,17 @@ const state = {
   recording: false,
   debate: false,
   debateTimer: null,
-  debateRemaining: 0
+  debateRemaining: 0,
+  // Debate rounds configuration
+  debateRounds: [
+    { label: 'Opening', duration: 120 },
+    { label: 'Rebuttal', duration: 120 },
+    { label: 'Closing', duration: 120 }
+  ],
+  currentRoundIndex: 0,
+  currentTurn: 0, // 0 = user, 1 = AI
+  speakerFirstUser: true,
+  debateTurnCount: 0
 };
 
 // Cache DOM nodes
@@ -40,6 +50,13 @@ const uploadBtn = document.getElementById('uploadBtn');
 const fileInput = document.getElementById('fileInput');
 const exportBtn = document.getElementById('exportTranscript');
 const transcriptList = document.getElementById('transcriptList');
+const coachFeedbackBtn = document.getElementById('coachFeedbackBtn');
+// Debate status elements
+const debateStatus = document.getElementById('debateStatus');
+const roundLabel = document.getElementById('roundLabel');
+const turnLabel = document.getElementById('turnLabel');
+const progressFill = document.getElementById('progressFill');
+const nextRoundBtn = document.getElementById('nextRoundBtn');
 // Score rows
 const scoreRows = {
   clarity: document.getElementById('scoreClarity'),
@@ -48,6 +65,27 @@ const scoreRows = {
   responsiveness: document.getElementById('scoreResponsiveness'),
   persuasiveness: document.getElementById('scorePersuasiveness')
 };
+
+// Simple beep utility using Web Audio API.  Generates a short tone to
+// indicate start/stop of recording without needing external audio assets.
+function beep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.stop(ctx.currentTime + 0.16);
+    setTimeout(() => ctx.close(), 200);
+  } catch (e) {
+    console.error('beep error:', e);
+  }
+}
 
 // Restore state and attach listeners on load
 window.addEventListener('DOMContentLoaded', () => {
@@ -80,6 +118,28 @@ window.addEventListener('DOMContentLoaded', () => {
   exportBtn.addEventListener('click', exportTranscript);
   // Debate toggle
   debateToggle.addEventListener('click', toggleDebateMode);
+  // Coach feedback
+  coachFeedbackBtn.addEventListener('click', getCoachFeedback);
+  // Space bar microphone trigger
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !e.repeat) {
+      // do not capture if typing in textarea or other input
+      const active = document.activeElement;
+      if (active !== textInput && active !== recordBtn && !state.recording) {
+        e.preventDefault();
+        startRecording();
+      }
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+      const active = document.activeElement;
+      if (active !== textInput && active !== recordBtn && state.recording) {
+        e.preventDefault();
+        stopRecording();
+      }
+    }
+  });
   // Initial data
   refreshVectorList();
   updateScoreUI();
@@ -119,21 +179,23 @@ async function handleSend() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, message: text, mode: state.mode })
     });
-    const data = await res.json();
+    const result = await res.json();
     showTyping(false);
-    if (data.error) {
-      addMessage('assistant', `Error: ${data.error}`);
+    if (!result || result.success === false) {
+      const errMsg = result?.error || 'An error occurred';
+      addMessage('assistant', `Error: ${errMsg}`);
       return;
     }
-    const reply = data.assistantResponse || data.assistant || data.text || '';
-    const references = data.references || [];
+    const payload = result.data || result;
+    const reply = payload.assistantResponse || payload.assistant || payload.text || '';
+    const references = payload.references || [];
     addMessage('assistant', reply, references);
     if (reply) {
       await scoreMessage(reply);
     }
     // Play audio if present
-    if (data.assistantAudio) {
-      tryPlayAudio(data.assistantAudio);
+    if (payload.assistantAudio) {
+      tryPlayAudio(payload.assistantAudio);
     }
   } catch (e) {
     console.error('send error:', e);
@@ -231,8 +293,11 @@ async function startRecording() {
       if (e.data.size > 0) state.audioChunks.push(e.data);
     };
     mediaRecorder.onstop = async () => {
+      // stop pulsing and beep at end
       recordBtn.classList.remove('active');
+      recordBtn.classList.remove('pulsing');
       state.recording = false;
+      beep();
       const blob = new Blob(state.audioChunks, { type: 'audio/webm' });
       // send to server
       const formData = new FormData();
@@ -240,8 +305,14 @@ async function startRecording() {
       try {
         const resp = await fetch('/api/transcribe', { method: 'POST', body: formData });
         const out = await resp.json();
-        if (out && out.text) {
-          textInput.value = out.text;
+        if (!out || out.success === false) {
+          const msg = out?.error || 'Failed to transcribe audio.';
+          addMessage('assistant', msg);
+          return;
+        }
+        const payload = out.data || out;
+        if (payload && payload.text) {
+          textInput.value = payload.text;
           handleSend();
         }
       } catch (e) {
@@ -252,6 +323,9 @@ async function startRecording() {
     mediaRecorder.start();
     state.recording = true;
     recordBtn.classList.add('active');
+    recordBtn.classList.add('pulsing');
+    // beep on start
+    beep();
   } catch (e) {
     console.error('recording error:', e);
     addMessage('assistant', 'Unable to access microphone.');
@@ -284,8 +358,12 @@ async function handleUpload(e) {
 async function refreshVectorList() {
   try {
     const res = await fetch('/api/vector-store');
-    const data = await res.json();
-    const vectors = data.vectors || data.files || [];
+    const out = await res.json();
+    let vectors = [];
+    if (out && out.success !== false) {
+      const data = out.data || out;
+      vectors = data.vectors || data.files || [];
+    }
     sourceList.innerHTML = '';
     vectors.forEach(file => {
       const li = document.createElement('li');
@@ -297,6 +375,9 @@ async function refreshVectorList() {
       li.appendChild(delBtn);
       sourceList.appendChild(li);
     });
+    if (!vectors.length) {
+      sourceList.innerHTML = '<li class="empty">No sources uploaded</li>';
+    }
   } catch (e) {
     console.error('vector list error:', e);
     sourceList.innerHTML = '<li class="empty">Unable to load sources</li>';
@@ -334,46 +415,141 @@ function exportTranscript() {
   }, 0);
 }
 
-// Debate mode
-function toggleDebateMode() {
-  state.debate = !state.debate;
-  if (state.debate) {
-    startDebateTimer();
-    debateToggle.textContent = '⏹️ Stop Debate Mode';
-    sessionInfo.textContent = 'Debate mode – your turn';
-  } else {
-    stopDebateTimer();
-    debateToggle.textContent = '🗣️ Start Debate Mode';
-    sessionInfo.textContent = `Mode: ${state.mode.charAt(0).toUpperCase() + state.mode.slice(1)}`;
+// Request coach feedback summary from server and display as a message
+async function getCoachFeedback() {
+  try {
+    const resp = await fetch('/api/ai-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: state.transcript })
+    });
+    const out = await resp.json();
+    if (!out || out.success === false) {
+      const msg = out?.error || 'Failed to fetch coach feedback.';
+      addMessage('assistant', msg);
+      return;
+    }
+    const notes = out.data?.notes;
+    if (notes) {
+      addMessage('assistant', `Coach Feedback: ${notes}`);
+    } else {
+      addMessage('assistant', 'No feedback available.');
+    }
+  } catch (err) {
+    console.error('coach feedback error:', err);
+    addMessage('assistant', 'Failed to fetch coach feedback.');
   }
 }
 
-function startDebateTimer() {
-  // 2 minutes per turn (120 seconds)
-  state.debateRemaining = 120;
+// Debate mode
+function toggleDebateMode() {
+  if (state.debate) {
+    // End debate
+    endDebate();
+  } else {
+    // Start debate
+    startDebate();
+  }
+}
+
+// Initialize debate: ask user for starting side and begin first round
+function startDebate() {
+  state.debate = true;
+  // Choose starting speaker via confirm (OK => user, Cancel => AI)
+  try {
+    const userFirst = window.confirm('Would you like to go first?\nOK = You, Cancel = Mootie');
+    state.speakerFirstUser = userFirst;
+  } catch (e) {
+    state.speakerFirstUser = true;
+  }
+  state.currentRoundIndex = 0;
+  state.debateTurnCount = 0;
+  debateToggle.textContent = '⏹️ Stop Debate Mode';
+  // Show status area
+  debateStatus.classList.remove('hidden');
+  startRound();
+}
+
+// Begin a round
+function startRound() {
+  const round = state.debateRounds[state.currentRoundIndex];
+  if (!round) {
+    endDebate();
+    return;
+  }
+  // Determine starting speaker for this round: alternate each round
+  const startUser = state.speakerFirstUser ? 0 : 1;
+  // If odd round, invert starting speaker
+  state.currentTurn = (state.currentRoundIndex % 2 === 0 ? startUser : 1 - startUser);
+  state.debateRemaining = round.duration;
+  state.debateTurnCount = 0;
+  // Update labels
+  roundLabel.textContent = round.label;
+  turnLabel.textContent = state.currentTurn === 0 ? 'Your Turn' : "Mootie's Turn";
+  // Update session info
   updateDebateDisplay();
+  // Start timer interval
   if (state.debateTimer) clearInterval(state.debateTimer);
   state.debateTimer = setInterval(() => {
     state.debateRemaining--;
-    updateDebateDisplay();
     if (state.debateRemaining <= 0) {
-      // swap to AI or user turn
-      state.debateRemaining = 120;
-      // Optionally toggle speaker indicator (not implemented)
+      handleTurnEnd();
     }
+    updateDebateDisplay();
   }, 1000);
 }
 
-function stopDebateTimer() {
-  clearInterval(state.debateTimer);
-  state.debateTimer = null;
+// Handle end of a turn within a round
+function handleTurnEnd() {
+  const round = state.debateRounds[state.currentRoundIndex];
+  if (!round) {
+    endDebate();
+    return;
+  }
+  if (state.debateTurnCount === 0) {
+    // Switch to other speaker for second half of this round
+    state.debateTurnCount = 1;
+    state.currentTurn = 1 - state.currentTurn;
+    state.debateRemaining = round.duration;
+    turnLabel.textContent = state.currentTurn === 0 ? 'Your Turn' : "Mootie's Turn";
+  } else {
+    // Completed both turns for this round
+    nextRound();
+  }
 }
 
+// Proceed to next round
+function nextRound() {
+  state.currentRoundIndex++;
+  if (state.currentRoundIndex >= state.debateRounds.length) {
+    endDebate();
+    return;
+  }
+  startRound();
+}
+
+// End the debate and clean up
+function endDebate() {
+  state.debate = false;
+  clearInterval(state.debateTimer);
+  state.debateTimer = null;
+  // Hide status area
+  debateStatus.classList.add('hidden');
+  debateToggle.textContent = '🗣️ Start Debate Mode';
+  sessionInfo.textContent = `Mode: ${state.mode.charAt(0).toUpperCase() + state.mode.slice(1)}`;
+}
+
+// Update debate UI display each tick
 function updateDebateDisplay() {
+  if (!state.debate) return;
+  const round = state.debateRounds[state.currentRoundIndex];
+  const total = round ? round.duration : 1;
+  const percent = Math.max(0, Math.min(1, (total - state.debateRemaining) / total)) * 100;
+  progressFill.style.width = percent + '%';
   const mins = Math.floor(state.debateRemaining / 60);
   const secs = state.debateRemaining % 60;
   const timerString = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  sessionInfo.textContent = `Debate mode – ${timerString}`;
+  sessionInfo.textContent = `Debate: ${round?.label || ''} – ${timerString}`;
 }
 
 // Audio playback helper

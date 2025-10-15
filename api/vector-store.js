@@ -5,12 +5,12 @@
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
   if (!OPENAI_API_KEY || !VECTOR_STORE_ID) {
-    return res.status(200).json({ vectors: [] });
+    return res.status(200).json({ success: true, data: { vectors: [] } });
   }
   try {
     const list = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     });
     const data = await list.json();
     if (!Array.isArray(data?.data)) {
-      return res.status(200).json({ vectors: [] });
+      return res.status(200).json({ success: true, data: { vectors: [] } });
     }
     const filesWithNames = await Promise.all(
       data.data.map(async (file) => {
@@ -29,9 +29,9 @@ export default async function handler(req, res) {
         return { id: file.id, filename: fd.filename || 'Unnamed file' };
       })
     );
-    return res.status(200).json({ vectors: filesWithNames });
+    return res.status(200).json({ success: true, data: { vectors: filesWithNames } });
   } catch (e) {
     console.error('Vector list error:', e);
-    return res.status(200).json({ vectors: [] });
+    return res.status(200).json({ success: true, data: { vectors: [] } });
   }
 }
