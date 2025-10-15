@@ -30,14 +30,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Malformed multipart/form-data (no boundary)' });
     }
     const boundary = '--' + boundaryToken;
-    // Read the entire request body so we can locate the file part.
+
+    // Read the entire request body so we can locate the document part.
     let raw = Buffer.alloc(0);
     for await (const chunk of req) raw = Buffer.concat([raw, chunk]);
     const parts = raw.toString('binary').split(boundary);
-    // Accept either `document` or `file` field names to support old and new clients.
-    const filePart = parts.find((p) => p.includes('name="document"') || p.includes('name="file"'));
+    const filePart = parts.find((p) => p.includes('name="document"'));
     if (!filePart) {
-      return res.status(400).json({ error: "No file field found" });
+      return res.status(400).json({ error: "No 'document' field found" });
     }
     const headerEnd = filePart.indexOf('\r\n\r\n');
     if (headerEnd === -1) {

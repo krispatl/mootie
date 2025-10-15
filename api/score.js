@@ -1,0 +1,1 @@
+export default async function handler(req,res){res.status(200).json({success:true,data:{clarity:.8,structure:.85,authority:.6,notes:'AI Notes'}})}
