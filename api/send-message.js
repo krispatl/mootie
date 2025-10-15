@@ -1,45 +1,37 @@
-// API route for handling user messages and generating AI responses.
-// This endpoint accepts a POST request with a JSON body containing a
-// `text` field (the user's prompt). It forwards the request to the
-// OpenAI "responses" API, optionally including a vector store for file
-// search, and returns the assistant's text and a base64‑encoded MP3
-// audio response.
+// api/send-message.js
+// Generates a response from the Mootie assistant.  This handler accepts
+// POST requests with either `text`, `message` or `prompt` fields and an
+// optional `mode` indicating the coach persona (coach, judge,
+// opposition).  It forwards the request to OpenAI's /v1/responses API
+// with a system prompt tailored to the selected mode and optionally
+// retrieves grounding documents from your configured vector store.
 
 export default async function handler(req, res) {
-  // Only allow POST requests; return 405 for other methods.
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  // Destructure the user input from the request body. In future this
-  // could be expanded to include a session ID or coach mode.
-  const { text } = req.body || {};
-  if (!text || typeof text !== 'string' || !text.trim()) {
-    return res.status(400).json({ error: 'Missing or invalid text' });
+  let body;
+  try {
+    body = req.body || await parseJSON(req);
+  } catch (err) {
+    return res.status(400).json({ error: 'Invalid JSON body' });
   }
-
-  // Pull necessary environment variables. Without these the request
-  // cannot be fulfilled. Use clear error messages to aid debugging.
+  const userInput = body.text || body.message || body.prompt || '';
+  const mode = body.mode || 'coach';
+  if (!userInput) {
+    return res.status(400).json({ error: 'Missing text' });
+  }
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
   if (!OPENAI_API_KEY) {
     return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
   }
-
-  // Compose the system prompt and user message. The system prompt
-  // instructs MOOT AI to behave like a debate coach.
+  // Construct system prompt based on mode
+  const systemPrompt = getSystemPrompt(mode);
   const messages = [
-    {
-      role: 'system',
-      content:
-        'You are MOOT AI, a rigorous moot court debate partner. Be concise, cite logic clearly, ask targeted follow‑ups, and keep a professional, coach‑like tone. Format arguments in bullet points with bold headings when helpful.',
-    },
-    { role: 'user', content: text },
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userInput }
   ];
-
-  // Build the request payload for OpenAI. File search is enabled
-  // automatically when a vector store ID is provided. It returns up to
-  // 20 ranked results that will ground the response.
   const requestBody = {
     model: 'gpt-4o',
     input: messages,
@@ -49,77 +41,89 @@ export default async function handler(req, res) {
         vector_store_ids: VECTOR_STORE_ID ? [VECTOR_STORE_ID] : [],
         filters: null,
         max_num_results: 20,
-        ranking_options: {
-          ranker: 'auto',
-          score_threshold: 0,
-        },
-      },
+        ranking_options: { ranker: 'auto', score_threshold: 0 }
+      }
     ],
     stream: false,
     store: false,
     text: { format: { type: 'text' } },
-    truncation: 'auto',
+    truncation: 'auto'
   };
-
   try {
-    // Call the OpenAI responses API. If the call fails network‑wise,
-    // the catch block below will handle it.
-    const apiResp = await fetch('https://api.openai.com/v1/responses', {
+    const resp = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(requestBody)
     });
-
-    if (!apiResp.ok) {
-      const text = await apiResp.text();
-      return res
-        .status(apiResp.status)
-        .json({ error: `OpenAI API error (${apiResp.status})`, details: text.slice(0, 200) });
+    const result = await resp.json();
+    if (!result || !Array.isArray(result.output)) {
+      return res.status(500).json({ error: 'Invalid response format from OpenAI', result });
     }
-    const result = await apiResp.json();
-
-    // Extract the assistant message from the output array. The result
-    // should include a message object with an `output_text` chunk.
-    let outText = 'No text available.';
-    if (Array.isArray(result?.output)) {
-      const outputMsg = result.output.find((o) => o.type === 'message');
-      if (outputMsg && Array.isArray(outputMsg.content)) {
-        const textChunk = outputMsg.content.find((c) => c.type === 'output_text');
-        if (textChunk && typeof textChunk.text === 'string') {
-          outText = textChunk.text;
-        }
-      }
+    // Extract assistant text
+    let outText = 'No response.';
+    const output = result.output.find(o => o.type === 'message');
+    if (output && output.content) {
+      const chunk = output.content.find(c => c.type === 'output_text');
+      if (chunk && chunk.text) outText = chunk.text;
     }
-
-    // Attempt to synthesize the assistant response using OpenAI TTS. If
-    // this call fails for any reason we still return the text response.
+    // Extract citations if present (strings like "[1]", "[2]" etc)
+    const citations = [];
+    const citationMatches = outText.match(/\[(\d+)\]/g) || [];
+    citationMatches.forEach(m => {
+      const num = m.replace(/\[|\]/g, '');
+      citations.push(num);
+    });
+    // Optional TTS
     let audioBase64 = null;
     try {
-      const tts = await fetch('https://api.openai.com/v1/audio/speech', {
+      const voice = pickVoice(mode);
+      const ttsResp = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ model: 'tts-1', input: outText, voice: 'alloy', response_format: 'mp3' }),
+        body: JSON.stringify({ model: 'tts-1', input: outText, voice, response_format: 'mp3' })
       });
-      if (tts.ok) {
-        const buf = Buffer.from(await tts.arrayBuffer());
-        audioBase64 = buf.toString('base64');
-      }
+      const buf = Buffer.from(await ttsResp.arrayBuffer());
+      audioBase64 = buf.toString('base64');
     } catch (err) {
-      console.error('TTS synthesis failed:', err);
+      console.error('TTS failed:', err);
     }
-
-    // Return both the text and audio. Even if audio generation failed
-    // (audioBase64 is null) the text will still be present.
-    return res.status(200).json({ assistantResponse: outText, assistantAudio: audioBase64 });
+    return res.status(200).json({ assistantResponse: outText, assistantAudio: audioBase64, references: citations });
   } catch (err) {
-    // Catch network errors or unexpected exceptions and return a 500.
-    console.error('Error generating response:', err);
-    return res.status(500).json({ error: 'Error generating response', details: err?.message || String(err) });
+    console.error(err);
+    return res.status(500).json({ error: 'Error generating response.' });
+  }
+}
+
+async function parseJSON(req) {
+  let raw = '';
+  for await (const chunk of req) raw += chunk;
+  return JSON.parse(raw || '{}');
+}
+
+function getSystemPrompt(mode) {
+  switch (mode) {
+    case 'judge':
+      return 'You are Mootie, acting as a stern judge in a moot court. Ask probing questions, challenge unsupported claims, and provide rigorous critique. Keep a professional tone and avoid fluff.';
+    case 'opposition':
+      return 'You are Mootie, representing opposing counsel in a moot court. Respond with counterarguments and adversarial reasoning. Point out logical flaws and bring up alternative precedents.';
+    case 'coach':
+    default:
+      return 'You are Mootie, a constructive moot court coach. Offer helpful feedback, highlight strengths and weaknesses, and encourage improvement in clarity, structure, authority and persuasiveness.';
+  }
+}
+
+function pickVoice(mode) {
+  // Choose a distinct voice per mode for TTS playback
+  switch (mode) {
+    case 'judge': return 'alloy';
+    case 'opposition': return 'nova';
+    case 'coach':
+    default: return 'echo';
   }
 }

@@ -1,95 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MOOT AI — Debate Practice</title>
-    <!-- Import the Inter font from Google Fonts. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-    />
-    <!-- Custom styles for the app -->
-    <link rel="stylesheet" href="./style.css" />
-    <!-- Minimal extra styling for older browsers that do not support backdrop‑filter. -->
-    <style>
-      /* Hide the native audio controls until a user interaction to comply with
-         autoplay policies on some mobile devices. This is overridden in JS. */
-      .messages audio[controls] {
-        display: none;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="app">
-      <!-- Top bar containing branding and primary actions -->
-      <header class="topbar">
-        <div class="brand">
-          <div class="logo-dot"></div>
-          <h1>MOOT AI</h1>
-        </div>
-        <div class="actions">
-          <!-- Hidden file input for uploading evidence. The corresponding button
-               triggers the click on this input via JS. -->
-          <label class="file-upload">
-            <input id="documentInput" type="file" accept=".pdf,.txt,.doc,.docx,.md" />
-            <span>Attach Evidence</span>
-          </label>
-          <!-- Buttons for upload, listing sources, and toggling live mode -->
-          <button id="uploadBtn" class="ghost">Upload</button>
-          <button id="listBtn" class="ghost">Sources</button>
-          <button id="transcriptToggle" class="ghost">Transcript</button>
-          <button id="exportBtn" class="ghost">Export</button>
-          <button id="liveToggle" class="toggle" title="Auto‑mic after assistant finishes">
-            <span class="live-dot" style="display: none"></span>
-            Live Mode
-          </button>
-        </div>
-      </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mootie – AI Moot Court Coach</title>
+  <!--
+    This is the main entry point for the enhanced Mootie web app.  The layout is
+    designed to feel like a modern, professional moot court platform while
+    remaining fully responsive.  Buttons and panels are wired up via
+    client.js and styled via style.css.  Do not remove IDs as the JS relies
+    on them.
+  -->
+  <meta name="description" content="Practice oral arguments with realtime AI coaching, scoring and feedback." />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="app" class="container">
+    <!-- Top navigation with logo, session status and debate toggle -->
+    <header class="topbar">
+      <div class="logo">⚖️ Mootie</div>
+      <div class="session-info" id="sessionInfo">Ready to debate</div>
+      <button id="debateToggle" class="debate-btn">🗣️ Start Debate Mode</button>
+    </header>
 
-      <!-- Main content split into sidebar and chat area -->
-      <main class="content">
-        <aside class="sidebar">
-          <h2>Coach Modes</h2>
-          <ul id="modeChips">
-            <li><button class="chip active" data-mode="judge">Judge</button></li>
-            <li><button class="chip" data-mode="opposition">Opposition</button></li>
-            <li><button class="chip" data-mode="coach">Coach</button></li>
-          </ul>
-          <div class="recorder">
-            <button id="recordBtn" class="primary" title="Hold to record; Spacebar also works">
-              🎙️ Hold to Record
-            </button>
-            <p class="hint">Tip: press and hold the Spacebar to talk. Release to send.</p>
-          </div>
-          <div class="sources" id="vectorList" style="display: none"></div>
-          <!-- Collapsible transcript drawer: populated by client.js -->
-          <div class="transcript" id="transcriptDrawer" style="display:none;"></div>
-        </aside>
-        <section class="chat">
-          <div id="conversation" class="messages"></div>
-          <form id="chatForm" class="composer">
-            <input
-              id="userInput"
-              class="input"
-              type="text"
-              placeholder="Make your argument, ask for cross, or request a drill…"
-              autocomplete="off"
-            />
-            <button id="sendBtn" class="send" type="submit">Send</button>
-          </form>
-        </section>
-      </main>
+    <!-- Mode selector -->
+    <nav class="mode-nav">
+      <button class="mode-btn" data-mode="coach" id="modeCoach">Coach</button>
+      <button class="mode-btn" data-mode="judge" id="modeJudge">Judge</button>
+      <button class="mode-btn" data-mode="opposition" id="modeOpposition">Opposition</button>
+    </nav>
 
-      <footer class="footer">
-        <span
-          >Built for realtime moot court practice. Type or talk. Upload briefs to ground the
-          debate.</span
-        >
-      </footer>
-    </div>
-    <!-- Client-side logic -->
-    <script src="./client.js"></script>
-  </body>
+    <!-- Scoreboard area -->
+    <section class="scoreboard" id="scoreboard">
+      <div class="score-row" id="scoreClarity">
+        <span class="label">Clarity</span>
+        <div class="bar"><div class="fill" style="width:0%"></div></div>
+        <span class="value">0</span>
+      </div>
+      <div class="score-row" id="scoreStructure">
+        <span class="label">Structure</span>
+        <div class="bar"><div class="fill" style="width:0%"></div></div>
+        <span class="value">0</span>
+      </div>
+      <div class="score-row" id="scoreAuthority">
+        <span class="label">Authority</span>
+        <div class="bar"><div class="fill" style="width:0%"></div></div>
+        <span class="value">0</span>
+      </div>
+      <div class="score-row" id="scoreResponsiveness">
+        <span class="label">Responsiveness</span>
+        <div class="bar"><div class="fill" style="width:0%"></div></div>
+        <span class="value">0</span>
+      </div>
+      <div class="score-row" id="scorePersuasiveness">
+        <span class="label">Persuasiveness</span>
+        <div class="bar"><div class="fill" style="width:0%"></div></div>
+        <span class="value">0</span>
+      </div>
+    </section>
+
+    <main class="main">
+      <!-- Sidebar: sources and transcript/analytics -->
+      <aside class="sidebar" id="sidebar">
+        <div class="panel sources">
+          <h3>Sources</h3>
+          <ul id="sourceList" class="source-list"></ul>
+          <button id="uploadBtn" class="upload-btn">Upload Evidence</button>
+          <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.md" multiple hidden>
+        </div>
+        <div class="panel transcript">
+          <h3>Transcript &amp; Analytics</h3>
+          <div id="transcriptList" class="transcript-list"></div>
+          <button id="exportTranscript" class="export-btn">Export Transcript</button>
+        </div>
+      </aside>
+
+      <!-- Chat area -->
+      <section class="chat-area">
+        <div id="messages" class="messages"></div>
+        <div id="typingIndicator" class="typing-indicator hidden">
+          ⚖️ Mootie is deliberating<span class="dot one">.</span><span class="dot two">.</span><span class="dot three">.</span>
+        </div>
+        <div class="input-controls">
+          <button id="recordBtn" class="record-btn" title="Hold to record">🎤 Hold to Record</button>
+          <textarea id="textInput" class="text-input" placeholder="Type your argument…" rows="1"></textarea>
+          <button id="sendBtn" class="send-btn">Send</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <small>&copy; 2025 Mootie AI</small>
+    </footer>
+  </div>
+  <script type="module" src="./client.js"></script>
+</body>
 </html>
