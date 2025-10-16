@@ -563,6 +563,20 @@ function startDebate() {
 }
 
 // Begin a round
+
+// End the debate and clean up
+function endDebate() {
+  // Stop timing
+  if (state.debateTimer) { clearInterval(state.debateTimer); state.debateTimer = null; }
+  state.debate = false;
+  // Reset UI
+  try { document.body.classList.remove('user-speaking'); document.body.classList.remove('ai-speaking'); } catch(_){}
+  if (state.currentAudio) { try { state.currentAudio.pause(); } catch(_){} state.currentAudio = null; }
+  debateStatus.classList.add('hidden');
+  debateToggle.textContent = '🗣️ Start Debate Mode';
+  sessionInfo.textContent = `Mode: ${state.mode.charAt(0).toUpperCase() + state.mode.slice(1)}`;
+}
+
 function startRound() {
   const round = state.debateRounds[state.currentRoundIndex];
   if (!round) {
