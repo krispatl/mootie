@@ -619,41 +619,10 @@ body {
   transform: scale(1.1);
   background: var(--accent2);
 }
-
-
-/* Debate Engine v2 additions */
-.modal .muted { opacity: 0.8; font-size: 0.95rem; }
-.grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.grid.two label { display: flex; flex-direction: column; gap: 6px; }
-.row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.checkbox { display: inline-flex; align-items: center; gap: 8px; }
-.primary { border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+/* Debate Engine v4 */
+.grid.two { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.checkbox { display:inline-flex; align-items:center; gap:8px; margin-top:8px; }
+.primary { border:none; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
 .primary:hover { transform: translateY(-1px); }
-.animate-slide-up { animation: slideUp 300ms ease-out; }
-@keyframes slideUp {
-  from { transform: translateY(12px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
-}
-#debateStatus { transition: opacity 200ms ease, transform 200ms ease; }
-#debateStatus.enter { opacity: 1; transform: translateY(0); }
-#debateStatus.hidden { opacity: 0; transform: translateY(6px); }
+body.user-speaking .topbar, body.ai-speaking .topbar { box-shadow: 0 0 0 2px var(--accent, #6ee7ff) inset; }
 .progress .fill { transition: width 1s linear; }
-
-
-/* Voice Debate Mode indicators */
-body.user-speaking .topbar, body.ai-speaking .topbar {
-  box-shadow: 0 0 0 2px var(--accent, #6ee7ff) inset, 0 0 12px rgba(0,0,0,0.3);
-}
-body.user-speaking #turnLabel { text-shadow: 0 0 10px rgba(0,0,0,0.2); }
-body.ai-speaking #turnLabel { text-shadow: 0 0 10px rgba(0,0,0,0.2); }
-
-/* Pulsing glow while speaking */
-body.user-speaking .logo, body.user-speaking #recordBtn,
-body.ai-speaking .logo {
-  animation: pulseGlow 1.2s ease-in-out infinite;
-}
-@keyframes pulseGlow {
-  0% { filter: drop-shadow(0 0 0 rgba(0,0,0,0.0)); }
-  50% { filter: drop-shadow(0 0 10px rgba(0,0,0,0.25)); }
-  100% { filter: drop-shadow(0 0 0 rgba(0,0,0,0.0)); }
-}

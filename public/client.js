@@ -7,7 +7,7 @@
 // pure where possible.
 
 
-// Debate Setup Modal elements
+// Debate Setup Modal refs (v4)
 const debateSetupModal = document.getElementById('debateSetupModal');
 const debateSetupForm = document.getElementById('debateSetupForm');
 const debateOpening = document.getElementById('debateOpening');
@@ -15,9 +15,7 @@ const debateRebuttal = document.getElementById('debateRebuttal');
 const debateClosing = document.getElementById('debateClosing');
 const debateStarter = document.getElementById('debateStarter');
 const debateCancel = document.getElementById('debateCancel');
-const debateStartBtn = document.getElementById('debateStartBtn');
 const enableCoachFeedback = document.getElementById('enableCoachFeedback');
-
 const state = {
   mode: 'coach',
   scores: {
@@ -70,64 +68,28 @@ const turnLabel = document.getElementById('turnLabel');
 const progressFill = document.getElementById('progressFill');
 const nextRoundBtn = document.getElementById('nextRoundBtn');
 
-
-// ---- Debate Engine v2: Setup Modal & Configurable Rounds ----
-function openDebateSetup() {
+// Debate Engine v4 helpers
+function v4OpenDebateSetup() {
+  if (!debateSetupModal) { try { startDebate(); } catch(e){} return; }
   debateSetupModal.classList.remove('hidden');
-  setTimeout(() => debateSetupModal.querySelector('.modal-content')?.classList.add('animate-slide-up'), 0);
 }
-
-function closeDebateSetup() {
-  debateSetupModal.classList.add('hidden');
+function v4CloseDebateSetup() {
+  if (debateSetupModal) debateSetupModal.classList.add('hidden');
 }
-
-function startDebateFromConfig() {
-  const opening = Math.max(15, Math.min(600, parseInt(debateOpening.value || '60', 10)));
-  const rebuttal = Math.max(15, Math.min(600, parseInt(debateRebuttal.value || '45', 10)));
-  const closing = Math.max(15, Math.min(600, parseInt(debateClosing.value || '30', 10)));
-  const starter = (debateStarter.value === 'mootie') ? 'mootie' : 'you';
-  // Build round structure
-  state.debateRounds = [
-    { label: 'Opening', duration: opening },
-    { label: 'Rebuttal', duration: rebuttal },
-    { label: 'Closing', duration: closing }
-  ];
-  // If starter is mootie, swap order for opening
-  state.speakerFirstUser = (starter !== 'mootie');
-  state.enableCoachFeedback = !!enableCoachFeedback.checked;
-  closeDebateSetup();
-  // Kick off debate using configured state
-  startDebate();
+function v4StartDebateFromConfig() {
+  if (!debateSetupModal || !debateOpening || !debateRebuttal || !debateClosing || !debateStarter) { try { startDebate(); } catch(e){} return; }
+  try {
+    const opening = Math.max(15, Math.min(600, parseInt(debateOpening.value || '60', 10)));
+    const rebuttal = Math.max(15, Math.min(600, parseInt(debateRebuttal.value || '45', 10)));
+    const closing = Math.max(15, Math.min(600, parseInt(debateClosing.value || '30', 10)));
+    const starter = (debateStarter.value === 'mootie') ? 'mootie' : 'you';
+    try { state.debateRounds = [{ label: 'Opening', duration: opening }, { label: 'Rebuttal', duration: rebuttal }, { label: 'Closing', duration: closing }]; } catch(_){}
+    try { state.speakerFirstUser = (starter !== 'mootie'); } catch(_){}
+    try { state.enableCoachFeedback = !!(enableCoachFeedback && enableCoachFeedback.checked); } catch(_){}
+  } catch(_){}
+  v4CloseDebateSetup();
+  try { startDebate(); } catch(e){ console.error('startDebate error', e); }
 }
-
-// Override existing toggle to open setup when starting
-const _origToggleDebateMode = toggleDebateMode;
-toggleDebateMode = function() {
-  if (state.debate) {
-    _origToggleDebateMode();
-    return;
-  }
-  openDebateSetup();
-}
-
-// Wire modal buttons
-if (debateCancel) debateCancel.addEventListener('click', closeDebateSetup);
-if (debateSetupForm) debateSetupForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  startDebateFromConfig();
-});
-
-// Hook Enter/Escape for modal
-document.addEventListener('keydown', (e) => {
-  if (debateSetupModal && !debateSetupModal.classList.contains('hidden')) {
-    if (e.key === 'Escape') closeDebateSetup();
-    if (e.key === 'Enter' && (document.activeElement?.tagName !== 'TEXTAREA')) {
-      e.preventDefault();
-      startDebateFromConfig();
-    }
-  }
-});
-
 
 // Onboarding and help elements
 const onboardingModal = document.getElementById('onboardingModal');
@@ -224,6 +186,21 @@ window.addEventListener('DOMContentLoaded', () => {
   // Initial data
   refreshVectorList();
   updateScoreUI();
+  // v4 debate setup hooks
+  try {
+    if (debateToggle) {
+      debateToggle.addEventListener('click', (e) => {
+        if (!state.debate) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          v4OpenDebateSetup();
+        }
+      }, { capture: true });
+    }
+    if (debateCancel) debateCancel.addEventListener('click', v4CloseDebateSetup);
+    if (debateSetupForm) debateSetupForm.addEventListener('submit', (e) => { e.preventDefault(); v4StartDebateFromConfig(); });
+  } catch(e) { console.warn('v4 hook error', e); }
+
 });
 
 function setMode(mode) {
@@ -248,10 +225,6 @@ function applyMode(mode) {
 }
 
 async function handleSend() {
-  if (state.debate && state.currentTurn === 1) {
-    addMessage('assistant', "Hold up — it's Mootie's turn. You'll get your turn next.");
-    return;
-  }
   const text = textInput.value.trim();
   if (!text) return;
   // Clear input
@@ -368,17 +341,12 @@ function updateTranscriptUI() {
 
 // Recording logic
 async function startRecording() {
-  if (state.debate && state.currentTurn === 1) {
-    // AI's turn — don't allow user recording
-    addMessage('assistant', "It's Mootie's turn — wait for the chime.");
-    return;
-  }
   if (state.recording) return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(stream);
     state.mediaRecorder = mediaRecorder;
-    document.body.classList.add('user-speaking');
+    try { document.body.classList.add('user-speaking'); } catch(_){ }
     state.audioChunks = [];
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) state.audioChunks.push(e.data);
@@ -426,7 +394,7 @@ async function startRecording() {
 function stopRecording() {
   if (!state.recording || !state.mediaRecorder) return;
   state.mediaRecorder.stop();
-  try { document.body.classList.remove('user-speaking'); } catch(_){}
+  try { document.body.classList.remove('user-speaking'); } catch(_){ }
 }
 
 // Upload document
@@ -563,20 +531,6 @@ function startDebate() {
 }
 
 // Begin a round
-
-// End the debate and clean up
-function endDebate() {
-  // Stop timing
-  if (state.debateTimer) { clearInterval(state.debateTimer); state.debateTimer = null; }
-  state.debate = false;
-  // Reset UI
-  try { document.body.classList.remove('user-speaking'); document.body.classList.remove('ai-speaking'); } catch(_){}
-  if (state.currentAudio) { try { state.currentAudio.pause(); } catch(_){} state.currentAudio = null; }
-  debateStatus.classList.add('hidden');
-  debateToggle.textContent = '🗣️ Start Debate Mode';
-  sessionInfo.textContent = `Mode: ${state.mode.charAt(0).toUpperCase() + state.mode.slice(1)}`;
-}
-
 function startRound() {
   const round = state.debateRounds[state.currentRoundIndex];
   if (!round) {
@@ -635,10 +589,7 @@ function nextRound() {
 }
 
 // End the debate and clean up
-f
-  try { document.body.classList.remove('user-speaking'); document.body.classList.remove('ai-speaking'); } catch(_){}
-  if (state.currentAudio) { try { state.currentAudio.pause(); } catch(_){} state.currentAudio = null; }
-unction endDebate() {
+function endDebate() {
   state.debate = false;
   clearInterval(state.debateTimer);
   state.debateTimer = null;
@@ -663,51 +614,34 @@ function updateDebateDisplay() {
 
 // Audio playback helper
 function tryPlayAudio(base64) {
+  try { if (state && state.debate && state.currentTurn === 1) { document.body.classList.add('ai-speaking'); v4PauseDebateTimer(); } } catch(_){}
   try {
-    if (state.currentAudio) { try { state.currentAudio.pause(); } catch(_){} }
+try {
     const audio = new Audio('data:audio/mp3;base64,' + base64);
-    state.currentAudio = audio;
-    // If it's AI's turn in debate, show speaking indicator and pause timer
-    if (state.debate && state.currentTurn === 1) {
-      document.body.classList.add('ai-speaking');
-      pauseDebateTimer();
-      audio.addEventListener('ended', () => {
-        document.body.classList.remove('ai-speaking');
-        // Resume and end turn
-        resumeDebateTimer();
-        handleTurnEnd();
-      });
-      audio.addEventListener('error', () => {
-        document.body.classList.remove('ai-speaking');
-        resumeDebateTimer();
-        handleTurnEnd();
-      });
-    }
     audio.play();
+  
+    try {
+      if (state && state.debate && state.currentTurn === 1) {
+        document.body.classList.remove('ai-speaking');
+        v4ResumeDebateTimer();
+        handleTurnEnd();
+      }
+    } catch(_){}
   } catch (e) {
+    console.error('audio playback error:', e);
+    try {
+      if (state && state.debate && state.currentTurn === 1) {
+        document.body.classList.remove('ai-speaking');
+        v4ResumeDebateTimer();
+        handleTurnEnd();
+      }
+    } catch(_){}
+  }
+} catch (e) {
     console.error('audio playback error:', e);
   }
 }
 
-
-// Debate audio/timer helpers
-function pauseDebateTimer() {
-  if (state.debateTimer) {
-    clearInterval(state.debateTimer);
-    state.debateTimer = null;
-  }
-}
-function resumeDebateTimer() {
-  if (!state.debate) return;
-  if (state.debateTimer) return;
-  state.debateTimer = setInterval(() => {
-    state.debateRemaining--;
-    if (state.debateRemaining <= 0) {
-      handleTurnEnd();
-    }
-    updateDebateDisplay();
-  }, 1000);
-}
 // ================= Onboarding and Help System =================
 // Array of onboarding steps with title and description
 const onboardingSteps = [
@@ -810,3 +744,17 @@ window.addEventListener('load', () => {
     }, 600);
   }
 });
+function v4PauseDebateTimer() {
+  if (state.debateTimer) { clearInterval(state.debateTimer); state.debateTimer = null; }
+}
+function v4ResumeDebateTimer() {
+  if (!state.debate) return;
+  if (state.debateTimer) return;
+  state.debateTimer = setInterval(() => {
+    try {
+      state.debateRemaining--;
+      if (state.debateRemaining <= 0) { handleTurnEnd(); }
+      updateDebateDisplay();
+    } catch(e) { console.warn('timer tick error', e); }
+  }, 1000);
+}
