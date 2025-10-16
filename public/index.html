@@ -106,6 +106,36 @@
       <small>&copy; 2025 Mootie AI</small>
     </footer>
   </div>
+  <!-- Onboarding Modal -->
+  <div id="onboardingModal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="onboardingTitle">Welcome to Mootie ⚖️</h2>
+      <p id="onboardingText">Your AI Moot Court Coach will guide you through key features.</p>
+      <div class="modal-nav">
+        <button id="onboardingPrev">Back</button>
+        <button id="onboardingNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Help Overlay -->
+  <div id="helpOverlay" class="hidden">
+    <div class="help-content">
+      <h3>🧭 How to Use Mootie</h3>
+      <ul>
+        <li><strong>🎙️ Voice:</strong> Press the mic or <strong>spacebar</strong> to record.</li>
+        <li><strong>⚖️ Modes:</strong> Choose <em>Coach</em>, <em>Judge</em>, or <em>Opposition</em> for different perspectives.</li>
+        <li><strong>🧑‍🏫 Coach Feedback:</strong> Get personalized critique after each debate.</li>
+        <li><strong>📊 Scoring:</strong> Track your clarity, structure, and persuasiveness scores.</li>
+        <li><strong>📁 Upload Docs:</strong> Add legal materials for case references.</li>
+      </ul>
+      <button id="closeHelp">Close</button>
+    </div>
+  </div>
+
+  <!-- Floating Help Button -->
+  <div id="helpButton" class="help-fab" title="Help">?</div>
+
   <script type="module" src="./client.js"></script>
 </body>
 </html>

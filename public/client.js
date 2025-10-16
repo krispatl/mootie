@@ -57,6 +57,15 @@ const roundLabel = document.getElementById('roundLabel');
 const turnLabel = document.getElementById('turnLabel');
 const progressFill = document.getElementById('progressFill');
 const nextRoundBtn = document.getElementById('nextRoundBtn');
+// Onboarding and help elements
+const onboardingModal = document.getElementById('onboardingModal');
+const onboardingTitle = document.getElementById('onboardingTitle');
+const onboardingText = document.getElementById('onboardingText');
+const onboardingNext = document.getElementById('onboardingNext');
+const onboardingPrev = document.getElementById('onboardingPrev');
+const helpButton = document.getElementById('helpButton');
+const helpOverlay = document.getElementById('helpOverlay');
+const closeHelp = document.getElementById('closeHelp');
 // Score rows
 const scoreRows = {
   clarity: document.getElementById('scoreClarity'),
@@ -561,3 +570,106 @@ function tryPlayAudio(base64) {
     console.error('audio playback error:', e);
   }
 }
+
+// ================= Onboarding and Help System =================
+// Array of onboarding steps with title and description
+const onboardingSteps = [
+  {
+    title: 'Welcome to Mootie ⚖️',
+    text: 'Your AI Moot Court Coach helps you practice arguments and improve your reasoning skills.'
+  },
+  {
+    title: 'Modes',
+    text: 'Switch between Coach, Judge, and Opposition modes to train from multiple perspectives.'
+  },
+  {
+    title: 'Voice Input',
+    text: 'Press the mic or hit the spacebar to start recording your arguments.'
+  },
+  {
+    title: 'Scoring',
+    text: 'Watch your clarity, structure, and persuasiveness scores update live after each round.'
+  },
+  {
+    title: 'Coach Feedback',
+    text: 'Click “Coach Feedback” at any time to receive personalized improvement tips.'
+  },
+  {
+    title: 'Start Debating',
+    text: 'You’re ready! Press “Start Debate Mode” and choose who goes first.'
+  }
+];
+let onboardingStep = 0;
+
+function showOnboardingStep(index) {
+  if (!onboardingModal) return;
+  onboardingStep = index;
+  const step = onboardingSteps[index];
+  if (onboardingTitle) onboardingTitle.textContent = step.title;
+  if (onboardingText) onboardingText.textContent = step.text;
+  if (onboardingPrev) onboardingPrev.style.display = index === 0 ? 'none' : 'inline-block';
+  if (onboardingNext) onboardingNext.textContent = index === onboardingSteps.length - 1 ? 'Finish' : 'Next';
+}
+
+function startOnboarding() {
+  if (!onboardingModal) return;
+  onboardingModal.classList.remove('hidden');
+  showOnboardingStep(0);
+}
+
+function endOnboarding() {
+  if (!onboardingModal) return;
+  onboardingModal.classList.add('hidden');
+  try {
+    localStorage.setItem('mootieOnboarded', 'true');
+  } catch (e) {
+    // ignore storage errors silently
+  }
+}
+
+// Attach onboarding navigation listeners
+if (onboardingNext) {
+  onboardingNext.addEventListener('click', () => {
+    if (onboardingStep < onboardingSteps.length - 1) {
+      showOnboardingStep(onboardingStep + 1);
+    } else {
+      endOnboarding();
+    }
+  });
+}
+if (onboardingPrev) {
+  onboardingPrev.addEventListener('click', () => {
+    if (onboardingStep > 0) {
+      showOnboardingStep(onboardingStep - 1);
+    }
+  });
+}
+
+// Help overlay toggle handlers
+if (helpButton && helpOverlay) {
+  helpButton.addEventListener('click', () => {
+    helpOverlay.classList.toggle('hidden');
+  });
+}
+if (closeHelp && helpOverlay) {
+  closeHelp.addEventListener('click', () => {
+    helpOverlay.classList.add('hidden');
+  });
+}
+
+// Show onboarding modal on first visit
+window.addEventListener('load', () => {
+  try {
+    const seen = localStorage.getItem('mootieOnboarded');
+    if (!seen) {
+      setTimeout(() => {
+        startOnboarding();
+      }, 600);
+    }
+  } catch (e) {
+    // In private browsing or storage unavailable, still show onboarding
+    setTimeout(() => {
+      startOnboarding();
+    }, 600);
+  }
+});
