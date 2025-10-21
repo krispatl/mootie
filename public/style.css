@@ -1,26 +1,30 @@
-/*
-  Global styles for the enhanced Mootie UI.  Colors and spacing are
-  derived from a dark courtroom theme with neon accents.  Use CSS
-  variables to adjust hues and contrasts in one place.  Feel free
-  to refine the palette to match your institution’s branding.
+/* 
+  Modern scholarly aesthetic for Mootie UI.
+  A refined palette with cream backgrounds, deep green accents and serif headings 
+  replaces the previous dark neon theme. Colours are defined via CSS variables 
+  for easy tweaking.  Typography pairs a classic serif for headlines with a 
+  modern sans‑serif for body copy to convey authority and approachability.
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap');
 
 :root {
-  --bg: #070b14;
-  --fg: #f5f7fa;
-  --muted: #7a8baa;
-  --panel: #0c1222;
-  --border: rgba(255, 255, 255, 0.1);
-  --accent: #22d3ee;
-  --accent2: #7dd3fc;
-  --accent3: #a78bfa;
+  /* Base colours */
+  --bg: #f5f0e6;            /* warm cream page background */
+  --fg: #2b2b2b;            /* dark text colour */
+  --muted: #6e6e6e;         /* muted secondary text */
+  --panel: #ffffff;         /* panel backgrounds */
+  --border: rgba(0, 0, 0, 0.1); /* subtle borders */
+  /* Accent palette inspired by law school greens and leather bindings */
+  --accent: #2b5934;        /* primary accent (deep green) */
+  --accent2: #7a9b76;       /* secondary accent (sage green) */
+  --accent3: #8a6f4d;       /* tertiary accent (warm leather brown) */
+  /* Mode‑specific colours */
   --coach-color: var(--accent3);
   --judge-color: var(--accent2);
-  --opposition-color: #f87171; /* soft red */
+  --opposition-color: #c26a5a; /* soft clay red for opposition */
   --radius: 12px;
-  --shadow: 0 8px 20px rgba(0,0,0,0.25);
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* lighter shadow */
 }
 
 * {
@@ -55,12 +59,10 @@ body {
   z-index: 50;
 }
 .logo {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.4rem;
+  font-family: 'Merriweather', serif;
+  font-size: 1.6rem;
   letter-spacing: 1px;
-  background: linear-gradient(90deg, var(--accent), var(--accent3));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent);
 }
 .session-info {
   font-size: 0.9rem;
@@ -70,16 +72,18 @@ body {
 }
 .debate-btn {
   border: 1px solid var(--border);
-  background: transparent;
-  color: var(--fg);
+  background: var(--panel);
+  color: var(--accent);
   padding: 0.5rem 0.9rem;
   border-radius: var(--radius);
   cursor: pointer;
   transition: background 0.2s, box-shadow 0.2s;
+  font-weight: 600;
 }
 .debate-btn:hover {
-  background: var(--panel);
-  box-shadow: 0 0 8px var(--accent);
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
 }
 
 /* Mode selector */
@@ -95,7 +99,7 @@ body {
   flex: 1;
   border: 1px solid var(--border);
   background: var(--panel);
-  color: var(--fg);
+  color: var(--accent);
   padding: 0.45rem 0;
   border-radius: var(--radius);
   cursor: pointer;
@@ -104,7 +108,7 @@ body {
 }
 .mode-btn.active {
   background: var(--accent);
-  color: var(--bg);
+  color: var(--panel);
   box-shadow: 0 0 8px var(--accent2);
 }
 
@@ -131,7 +135,7 @@ body {
   position: relative;
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -172,7 +176,7 @@ body {
 .debate-status .debate-progress {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -188,13 +192,15 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
-  color: var(--fg);
+  color: var(--accent);
   cursor: pointer;
   font-size: 0.8rem;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
 }
 .next-round-btn:hover {
-  box-shadow: 0 0 8px var(--accent);
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
 }
 .next-round-btn.hidden {
   display: none;
@@ -208,12 +214,14 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
-  color: var(--fg);
+  color: var(--accent);
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
 }
 .feedback-btn:hover {
-  box-shadow: 0 0 8px var(--accent);
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
 }
 
 /* Pulsing recording effect */
@@ -222,15 +230,9 @@ body {
   box-shadow: 0 0 0 0 var(--accent);
 }
 @keyframes pulseRecord {
-  0% {
-    box-shadow: 0 0 0 0 var(--accent);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(34, 211, 238, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
-  }
+  0% { box-shadow: 0 0 0 0 var(--accent); }
+  70% { box-shadow: 0 0 0 12px rgba(43, 89, 52, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(43, 89, 52, 0); }
 }
 
 /* Wrap long filenames in the source list */
@@ -269,6 +271,8 @@ body {
   margin-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.25rem;
+  font-family: 'Merriweather', serif;
+  color: var(--accent);
 }
 .source-list {
   list-style: none;
@@ -295,20 +299,23 @@ body {
 .source-list button:hover {
   color: var(--accent);
 }
-.upload-btn, .export-btn {
+.upload-btn,
+.export-btn {
   margin-top: 0.6rem;
   padding: 0.5rem 0.9rem;
   width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
-  color: var(--fg);
+  color: var(--accent);
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
 }
-.upload-btn:hover, .export-btn:hover {
-  background: var(--panel);
-  box-shadow: 0 0 8px var(--accent);
+.upload-btn:hover,
+.export-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
 }
 .transcript-list {
   max-height: 200px;
@@ -344,12 +351,13 @@ body {
 .message.user {
   align-self: flex-end;
   background: var(--accent);
-  color: var(--bg);
+  color: var(--panel);
 }
 .message.assistant {
   align-self: flex-start;
   background: var(--panel);
   border: 1px solid var(--border);
+  color: var(--fg);
 }
 .message .meta {
   font-size: 0.75rem;
@@ -399,22 +407,26 @@ body {
   gap: 0.5rem;
   margin-top: 0.8rem;
 }
-.record-btn, .send-btn {
+.record-btn,
+.send-btn {
   flex: none;
   padding: 0.5rem 0.8rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
-  color: var(--fg);
+  color: var(--accent);
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
 }
-.record-btn:hover, .send-btn:hover {
-  box-shadow: 0 0 8px var(--accent);
+.record-btn:hover,
+.send-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
 }
 .record-btn.active {
   background: var(--accent);
-  color: var(--bg);
+  color: var(--panel);
 }
 .text-input {
   flex: 1;
@@ -459,15 +471,9 @@ body {
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
-  .sidebar {
-    display: none;
-  }
-  .scoreboard {
-    grid-template-columns: 1fr 1fr;
-  }
-  .messages {
-    max-width: 100%;
-  }
+  .sidebar { display: none; }
+  .scoreboard { grid-template-columns: 1fr 1fr; }
+  .messages { max-width: 100%; }
 }
 
 @media (max-width: 600px) {
@@ -476,25 +482,16 @@ body {
     align-items: flex-start;
     gap: 0.4rem;
   }
-  .mode-nav {
-    flex-wrap: wrap;
-  }
-  .mode-btn {
-    flex: 1 1 30%;
-  }
-  .scoreboard {
-    grid-template-columns: 1fr;
-  }
+  .mode-nav { flex-wrap: wrap; }
+  .mode-btn { flex: 1 1 30%; }
+  .scoreboard { grid-template-columns: 1fr; }
   .input-controls {
     flex-direction: column;
     align-items: stretch;
   }
-  .record-btn, .send-btn {
-    width: 100%;
-  }
-  .text-input {
-    width: 100%;
-  }
+  .record-btn,
+  .send-btn { width: 100%; }
+  .text-input { width: 100%; }
 }
 
 /* ===== Onboarding Modal Styles ===== */
@@ -521,6 +518,8 @@ body {
 }
 .modal-content h2 {
   margin-bottom: 1rem;
+  font-family: 'Merriweather', serif;
+  color: var(--accent);
 }
 .modal-content p {
   margin-bottom: 2rem;
@@ -537,7 +536,7 @@ body {
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--bg);
+  color: var(--panel);
   font-weight: 500;
   transition: background 0.2s;
 }
@@ -570,6 +569,8 @@ body {
 }
 .help-content h3 {
   margin-bottom: 1rem;
+  font-family: 'Merriweather', serif;
+  color: var(--accent);
 }
 .help-content ul {
   text-align: left;
@@ -578,14 +579,12 @@ body {
   list-style: none;
   padding-left: 0;
 }
-.help-content li::before {
-  content: '';
-}
+.help-content li::before { content: ''; }
 /* Close help button */
 #closeHelp {
   background: transparent;
   border: 1px solid var(--accent);
-  color: var(--fg);
+  color: var(--accent);
   padding: 0.5rem 0.9rem;
   border-radius: 8px;
   cursor: pointer;
@@ -593,7 +592,7 @@ body {
 }
 #closeHelp:hover {
   background: var(--accent);
-  color: var(--bg);
+  color: var(--panel);
 }
 
 /* ===== Floating Help Button ===== */
@@ -605,7 +604,7 @@ body {
   height: 52px;
   border-radius: 50%;
   background: var(--accent);
-  color: var(--bg);
+  color: var(--panel);
   font-size: 1.6rem;
   display: flex;
   align-items: center;
@@ -619,10 +618,14 @@ body {
   transform: scale(1.1);
   background: var(--accent2);
 }
-/* Debate Engine v4 */
-.grid.two { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.checkbox { display:inline-flex; align-items:center; gap:8px; margin-top:8px; }
-.primary { border:none; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer; }
+
+/* Debate Engine v4 helper classes */
+.grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.checkbox { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; }
+.primary { border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; cursor: pointer; }
 .primary:hover { transform: translateY(-1px); }
-body.user-speaking .topbar, body.ai-speaking .topbar { box-shadow: 0 0 0 2px var(--accent, #6ee7ff) inset; }
+body.user-speaking .topbar,
+body.ai-speaking .topbar {
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
 .progress .fill { transition: width 1s linear; }

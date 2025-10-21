@@ -1,4 +1,3 @@
-
 export const config = { runtime: 'edge' };
 
 function naiveNotes(transcript){
