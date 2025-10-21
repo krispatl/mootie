@@ -407,6 +407,7 @@ body {
   gap: 0.5rem;
   margin-top: 0.8rem;
 }
+/* Buttons within the input controls */
 .record-btn,
 .send-btn {
   flex: none;
@@ -426,6 +427,15 @@ body {
 }
 .record-btn.active {
   background: var(--accent);
+  color: var(--panel);
+}
+/* Send button is primary by default for better visibility */
+.send-btn {
+  background: var(--accent);
+  color: var(--panel);
+}
+.send-btn:hover {
+  background: var(--accent2);
   color: var(--panel);
 }
 .text-input {
