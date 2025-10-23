@@ -447,10 +447,23 @@ async function refreshVectorList() {
 async function deleteFile(fileId) {
   if (!fileId) return;
   try {
-    await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, { method: 'DELETE' });
+    const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      const msg = data?.error || `Failed to delete file (HTTP ${res.status})`;
+      addMessage('assistant', `❌ Delete error: ${msg}`);
+      console.error('Delete error:', data);
+    } else {
+      addMessage('assistant', '✅ File deleted successfully.');
+    }
+
     refreshVectorList();
   } catch (e) {
     console.error('delete file error:', e);
+    addMessage('assistant', '⚠️ Network error while deleting file.');
   }
 }
 
