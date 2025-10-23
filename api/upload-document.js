@@ -48,18 +48,43 @@ export default async function handler(req, res) {
     if (!uploaded || !uploaded.id) {
       return res.status(500).json({ success: false, error: 'File upload failed', details: uploaded });
     }
-    // Attach file to Vector Store
-    const attachResp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ file_id: uploaded.id })
-    });
-    const attached = await attachResp.json();
-    if (attached?.error) {
-      return res.status(500).json({ success: false, error: 'Attach failed', details: attached });
+    // Attach file to the vector store.  Use the v2 Assistants API path first,
+    // falling back to the legacy v1 path if the v2 endpoint returns 404.
+    const attachHeaders = {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json'
+    };
+    let attachResp = await fetch(
+      `https://api.openai.com/v1/assistants/v2/vector_stores/${VECTOR_STORE_ID}/files`,
+      {
+        method: 'POST',
+        headers: attachHeaders,
+        body: JSON.stringify({ file_id: uploaded.id })
+      }
+    );
+    if (attachResp.status === 404) {
+      attachResp = await fetch(
+        `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`,
+        {
+          method: 'POST',
+          headers: attachHeaders,
+          body: JSON.stringify({ file_id: uploaded.id })
+        }
+      );
+    }
+    const attachText = await attachResp.text();
+    let attached;
+    try {
+      attached = JSON.parse(attachText);
+    } catch (_) {
+      attached = {};
+    }
+    if (!attachResp.ok || attached?.error) {
+      return res.status(attachResp.status).json({
+        success: false,
+        error: 'Attach failed',
+        details: attached || attachText
+      });
     }
     return res.status(200).json({ success: true, data: { file_id: uploaded.id, vector_status: attached } });
   } catch (e) {
