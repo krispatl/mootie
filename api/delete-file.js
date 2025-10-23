@@ -1,5 +1,6 @@
 // api/delete-file.js
-// Compatible with both legacy and new Assistants v2 vector store endpoints.
+// Deletes a file from the configured OpenAI vector store.
+// Works with both legacy v1 and new Assistants v2 vector store endpoints.
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE') {
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
 
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
+
   if (!OPENAI_API_KEY) {
     return res.status(500).json({ success: false, error: 'Missing OPENAI_API_KEY' });
   }
@@ -23,13 +25,13 @@ export default async function handler(req, res) {
   const headers = { Authorization: `Bearer ${OPENAI_API_KEY}` };
 
   try {
-    // Try new Assistants v2 endpoint first
+    // --- Try new Assistants v2 endpoint first ---
     let resp = await fetch(
       `https://api.openai.com/v1/assistants/v2/vector_stores/${VECTOR_STORE_ID}/files/${encodeURIComponent(fileId)}`,
       { method: 'DELETE', headers }
     );
 
-    // Fallback to legacy path if not found
+    // --- Fall back to old v1 endpoint if v2 not found ---
     if (resp.status === 404) {
       resp = await fetch(
         `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files/${encodeURIComponent(fileId)}`,
@@ -44,16 +46,26 @@ export default async function handler(req, res) {
       return res.status(resp.status).json({
         success: false,
         error: `Delete failed (${resp.status})`,
-        details: text.slice(0, 200),
+        details: text.slice(0, 300)
       });
     }
 
-    let parsed;
-    try { parsed = JSON.parse(text); } catch { parsed = {}; }
+    // Try to parse JSON body
+    let parsed = {};
+    try { parsed = JSON.parse(text); } catch (_) {}
 
     return res.status(200).json({
       success: true,
       data: { deleted: parsed?.deleted ?? true },
-      details: parsed,
+      details: parsed
     });
+
   } catch (e) {
+    console.error('Delete-file error:', e);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete file',
+      details: e?.message || String(e)
+    });
+  }
+}
