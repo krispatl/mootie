@@ -445,14 +445,60 @@ async function refreshVectorList() {
 }
 
 async function deleteFile(fileId) {
-  if (!fileId) return;
+  const startTime = performance.now();
+  const groupName = `[deleteFile ${fileId}]`;
+  console.groupCollapsed(groupName);
+
   try {
-    await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, { method: 'DELETE' });
-    refreshVectorList();
-  } catch (e) {
-    console.error('delete file error:', e);
+    if (!fileId) {
+      console.error('❌ No fileId provided to deleteFile()');
+      alert('Delete failed: fileId missing.');
+      console.groupEnd(groupName);
+      return;
+    }
+
+    console.log('🧭 Starting deleteFile at', new Date().toLocaleTimeString());
+    console.log('📦 File ID:', fileId);
+
+    const endpoint = `/api/delete-file?fileId=${encodeURIComponent(fileId)}&debug=1`;
+    console.log('🔗 Request URL:', endpoint);
+
+    const res = await fetch(endpoint, { method: 'DELETE' });
+    console.log('📡 Response received:', res.status, res.statusText);
+
+    // Try reading as JSON; if not JSON, fallback to text
+    let data;
+    try {
+      data = await res.json();
+    } catch (err) {
+      console.warn('⚠️ Response not JSON, trying text...', err);
+      const txt = await res.text();
+      console.log('Raw text:', txt);
+      data = { raw: txt };
+    }
+
+    console.log('🧩 Full response body:', data);
+
+    if (!res.ok || !data?.success) {
+      console.warn('❌ Delete failed:', data?.error || `HTTP ${res.status}`);
+      alert(`Delete failed: ${data?.error || 'Unknown error'}`);
+    } else {
+      console.log('✅ File deleted successfully.');
+      alert('✅ File deleted successfully!');
+    }
+
+    console.log('⏱️ Duration:', (performance.now() - startTime).toFixed(1), 'ms');
+    console.groupEnd(groupName);
+
+    // Refresh file list afterward
+    await refreshVectorList();
+  } catch (err) {
+    console.error('💥 Uncaught error during deleteFile:', err);
+    alert(`Delete failed: ${err.message}`);
+    console.groupEnd(groupName);
   }
 }
+
 
 // Export transcript
 function exportTranscript() {
