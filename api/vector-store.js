@@ -12,8 +12,12 @@ export default async function handler(req, res) {
   if (!VECTOR_STORE_ID) return res.status(500).json({ success: false, error: 'Missing VECTOR_STORE_ID' });
 
   try {
+    // Include beta header for vector store operations. Without this header the server may return an error.
     const listResp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'OpenAI-Beta': 'assistants=v2',
+      },
     });
 
     const listText = await listResp.text();
