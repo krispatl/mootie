@@ -1,0 +1,641 @@
+/* 
+  Modern scholarly aesthetic for Mootie UI.
+  A refined palette with cream backgrounds, deep green accents and serif headings 
+  replaces the previous dark neon theme. Colours are defined via CSS variables 
+  for easy tweaking.  Typography pairs a classic serif for headlines with a 
+  modern sans‑serif for body copy to convey authority and approachability.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap');
+
+:root {
+  /* Base colours */
+  --bg: #f5f0e6;            /* warm cream page background */
+  --fg: #2b2b2b;            /* dark text colour */
+  --muted: #6e6e6e;         /* muted secondary text */
+  --panel: #ffffff;         /* panel backgrounds */
+  --border: rgba(0, 0, 0, 0.1); /* subtle borders */
+  /* Accent palette inspired by law school greens and leather bindings */
+  --accent: #2b5934;        /* primary accent (deep green) */
+  --accent2: #7a9b76;       /* secondary accent (sage green) */
+  --accent3: #8a6f4d;       /* tertiary accent (warm leather brown) */
+  /* Mode‑specific colours */
+  --coach-color: var(--accent3);
+  --judge-color: var(--accent2);
+  --opposition-color: #c26a5a; /* soft clay red for opposition */
+  --radius: 12px;
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* lighter shadow */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.logo {
+  font-family: 'Merriweather', serif;
+  font-size: 1.6rem;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+.session-info {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-right: auto;
+  margin-left: 1rem;
+}
+.debate-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--accent);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  font-weight: 600;
+}
+.debate-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
+}
+
+/* Mode selector */
+.mode-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.mode-btn {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--accent);
+  padding: 0.45rem 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+  font-weight: 600;
+}
+.mode-btn.active {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
+}
+
+/* Scoreboard */
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+.score-row .label {
+  flex: 0 0 90px;
+  color: var(--muted);
+}
+.score-row .bar {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.score-row .fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  width: 0;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.score-row .value {
+  width: 32px;
+  text-align: right;
+  color: var(--muted);
+}
+
+/* Debate status and progress */
+.debate-status {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+.debate-status.hidden {
+  display: none;
+}
+.debate-status .debate-info {
+  font-size: 0.9rem;
+  color: var(--accent);
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-weight: 600;
+}
+.debate-status .debate-progress {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.debate-status .progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  transition: width 1s linear;
+}
+.next-round-btn {
+  align-self: flex-end;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.next-round-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
+}
+.next-round-btn.hidden {
+  display: none;
+}
+
+/* Coach feedback button */
+.feedback-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.feedback-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
+}
+
+/* Pulsing recording effect */
+.record-btn.pulsing {
+  animation: pulseRecord 1.2s infinite;
+  box-shadow: 0 0 0 0 var(--accent);
+}
+@keyframes pulseRecord {
+  0% { box-shadow: 0 0 0 0 var(--accent); }
+  70% { box-shadow: 0 0 0 12px rgba(43, 89, 52, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(43, 89, 52, 0); }
+}
+
+/* Wrap long filenames in the source list */
+.source-list li {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Main layout */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.sidebar {
+  width: 300px;
+  max-width: 35%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.sidebar .panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  box-shadow: var(--shadow);
+}
+.sidebar h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+  font-family: 'Merriweather', serif;
+  color: var(--accent);
+}
+.source-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.source-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed var(--border);
+}
+.source-list li:last-child {
+  border-bottom: none;
+}
+.source-list button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.source-list button:hover {
+  color: var(--accent);
+}
+.upload-btn,
+.export-btn {
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.9rem;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.upload-btn:hover,
+.export-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
+}
+.transcript-list {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+/* Chat area */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem;
+  overflow: hidden;
+}
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.message {
+  display: flex;
+  flex-direction: column;
+  max-width: 80%;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  animation: fadeUp 0.35s ease forwards;
+  box-shadow: var(--shadow);
+}
+.message.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--panel);
+}
+.message.assistant {
+  align-self: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--fg);
+}
+.message .meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+.message .text {
+  white-space: pre-wrap;
+}
+.message .references {
+  font-size: 0.75rem;
+  color: var(--accent2);
+  margin-top: 0.3rem;
+}
+
+/* Thinking indicator */
+.typing-indicator {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+  padding-left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.typing-indicator.hidden {
+  display: none;
+}
+.typing-indicator .dot {
+  font-size: 1.2rem;
+  opacity: 0.5;
+  animation: blink 1.2s infinite;
+}
+.typing-indicator .dot.one { animation-delay: 0s; }
+.typing-indicator .dot.two { animation-delay: 0.3s; }
+.typing-indicator .dot.three { animation-delay: 0.6s; }
+@keyframes blink {
+  0%, 20% { opacity: 0.1; }
+  50% { opacity: 1; }
+  100% { opacity: 0.1; }
+}
+
+/* Input controls */
+.input-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+/* Buttons within the input controls */
+.record-btn,
+.send-btn {
+  flex: none;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.record-btn:hover,
+.send-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+  box-shadow: 0 0 8px var(--accent2);
+}
+.record-btn.active {
+  background: var(--accent);
+  color: var(--panel);
+}
+/* Send button is primary by default for better visibility */
+.send-btn {
+  background: var(--accent);
+  color: var(--panel);
+}
+.send-btn:hover {
+  background: var(--accent2);
+  color: var(--panel);
+}
+.text-input {
+  flex: 1;
+  resize: none;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 1rem;
+  line-height: 1.4;
+  min-height: 2rem;
+  max-height: 6rem;
+  overflow-y: auto;
+}
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 4px var(--accent);
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  font-size: 0.75rem;
+  padding: 0.5rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .scoreboard { grid-template-columns: 1fr 1fr; }
+  .messages { max-width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+  .mode-nav { flex-wrap: wrap; }
+  .mode-btn { flex: 1 1 30%; }
+  .scoreboard { grid-template-columns: 1fr; }
+  .input-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .record-btn,
+  .send-btn { width: 100%; }
+  .text-input { width: 100%; }
+}
+
+/* ===== Onboarding Modal Styles ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+}
+.modal.hidden {
+  display: none;
+}
+.modal-content {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 480px;
+  color: var(--fg);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.modal-content h2 {
+  margin-bottom: 1rem;
+  font-family: 'Merriweather', serif;
+  color: var(--accent);
+}
+.modal-content p {
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+.modal-nav {
+  display: flex;
+  justify-content: space-between;
+}
+#onboardingPrev,
+#onboardingNext {
+  background: var(--accent);
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--panel);
+  font-weight: 500;
+  transition: background 0.2s;
+}
+#onboardingPrev:hover,
+#onboardingNext:hover {
+  background: var(--accent2);
+}
+
+/* ===== Help Overlay Styles ===== */
+#helpOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+#helpOverlay.hidden {
+  display: none;
+}
+.help-content {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: var(--shadow);
+}
+.help-content h3 {
+  margin-bottom: 1rem;
+  font-family: 'Merriweather', serif;
+  color: var(--accent);
+}
+.help-content ul {
+  text-align: left;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  list-style: none;
+  padding-left: 0;
+}
+.help-content li::before { content: ''; }
+/* Close help button */
+#closeHelp {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+#closeHelp:hover {
+  background: var(--accent);
+  color: var(--panel);
+}
+
+/* ===== Floating Help Button ===== */
+.help-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--panel);
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  z-index: 9999;
+  transition: transform 0.2s ease, background 0.2s;
+}
+.help-fab:hover {
+  transform: scale(1.1);
+  background: var(--accent2);
+}
+
+/* Debate Engine v4 helper classes */
+.grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.checkbox { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; }
+.primary { border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+.primary:hover { transform: translateY(-1px); }
+body.user-speaking .topbar,
+body.ai-speaking .topbar {
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+.progress .fill { transition: width 1s linear; }
