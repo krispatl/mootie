@@ -21,9 +21,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Include beta header so the API correctly interprets the request as a File Search operation
     const resp = await fetch(
       `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files/${encodeURIComponent(fileId)}`,
-      { method: 'DELETE', headers: { Authorization: `Bearer ${OPENAI_API_KEY}` } }
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'OpenAI-Beta': 'assistants=v2',
+        },
+      },
     );
     const text = await resp.text();
     if (!resp.ok) {
