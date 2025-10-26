@@ -394,28 +394,31 @@ async function refreshVectorList() {
 }
 
 async function deleteFile(fileId) {
-  if (!fileId) return;
-  try {
-    await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, { method: 'DELETE' });
-    refreshVectorList();
-  console.log("[deleteFile] fileId:", fileId);
+  console.log('[deleteFile]', fileId);
   const start = performance.now();
+  try {
+    const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, {
+      method: 'DELETE', // REQUIRED or you’ll get 405
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
 
-  const response = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`);
-  const result = await response.json();
-  console.log("🧩 Full response body:", result);
+    const data = await res.json();
+    console.log('🧩 Full response body:', data);
 
-  if (result.success) {
-    const fileElement = document.querySelector(`[data-file-id="${fileId}"]`);
-    if (fileElement) {
-      fileElement.remove();
-      console.log(`🧹 Removed element from DOM: ${fileId}`);
+    if (!data.success) {
+      console.error('❌ Delete failed:', data.error || 'Unknown error');
     } else {
-      console.warn("⚠️ No DOM element found for fileId:", fileId);
+      console.log('✅ File deleted successfully.');
+      removeFileFromUI(fileId); // remove from frontend
     }
-  } else {
-    console.error("❌ Delete failed:", result.error || "Unknown error");
+
+    console.log('⏱️ Duration:', (performance.now() - start).toFixed(1), 'ms');
+  } catch (err) {
+    console.error('🔥 Exception during delete:', err);
   }
+}
 
   const duration = (performance.now() - start).toFixed(1);
   console.log("⏱️ Duration:", duration + " ms");
