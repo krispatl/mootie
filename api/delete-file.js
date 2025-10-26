@@ -1,6 +1,5 @@
 // api/delete-file.js
-// Removes a file from the configured vector store (disassociates it).
-// DELETE /api/delete-file?fileId=file_123
+// DELETE /api/delete-file?fileId=file_123  → disassociate a file from the vector store.
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE') {
@@ -14,12 +13,8 @@ export default async function handler(req, res) {
 
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
-  if (!OPENAI_API_KEY) {
-    return res.status(500).json({ success: false, error: 'Missing OPENAI_API_KEY' });
-  }
-  if (!VECTOR_STORE_ID) {
-    return res.status(500).json({ success: false, error: 'Missing VECTOR_STORE_ID' });
-  }
+  if (!OPENAI_API_KEY) return res.status(500).json({ success: false, error: 'Missing OPENAI_API_KEY' });
+  if (!VECTOR_STORE_ID) return res.status(500).json({ success: false, error: 'Missing VECTOR_STORE_ID' });
 
   try {
     // v2 file_search requires the beta header on vector_store endpoints
@@ -29,7 +24,7 @@ export default async function handler(req, res) {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'OpenAI-Beta': 'assistants=v2',
+          'OpenAI-Beta': 'assistants=v2'
         }
       }
     );
