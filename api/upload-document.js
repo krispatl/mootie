@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const bodyBin = filePart.slice(headerEnd + 4, filePart.lastIndexOf('\r\n'));
     const fileBuffer = Buffer.from(bodyBin, 'binary');
 
-    const filenameMatch = headers.match(/filename="([^"]+)"/i);
+    const filenameMatch = headers.match(/filename="([^"\r\n]+)"/i);
     const filename = filenameMatch ? filenameMatch[1] : 'document.bin';
 
     // --- 1) Upload to OpenAI Files ---
@@ -74,11 +74,14 @@ export default async function handler(req, res) {
     }
 
     // --- 2) Attach file to your Vector Store (v1 endpoint) ---
+    // When using OpenAI's file search (vector stores) beta, specify the beta header.
+    // Without this header the API may reject the request or assume the legacy retrieval API.
     const attachResp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
+        'OpenAI-Beta': 'assistants=v2',
       },
       body: JSON.stringify({ file_id }),
     });
