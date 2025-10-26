@@ -1,27 +1,49 @@
-
-import { OpenAI } from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
+// api/delete-file.js
 export default async function handler(req, res) {
   if (req.method !== 'DELETE') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const fileId = req.query.fileId;
-  const vectorStoreId = process.env.VECTOR_STORE_ID;
-
-  console.log('[API] Deleting file from vector store:', fileId);
-
-  if (!fileId || !vectorStoreId || !process.env.OPENAI_API_KEY) {
-    return res.status(400).json({ success: false, error: 'Missing required parameters' });
+  const { fileId } = req.query || {};
+  if (!fileId) {
+    return res.status(400).json({ success: false, error: 'Missing fileId parameter' });
   }
 
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
+  if (!OPENAI_API_KEY || !VECTOR_STORE_ID) {
+    return res.status(500).json({ success: false, error: 'Missing environment variables' });
+  }
+
+  const url = `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files/${fileId}`;
+  console.log(`[API] DELETE ${url}`);
+
   try {
-    const response = await openai.beta.vectorStores.files.del(vectorStoreId, fileId);
-    return res.status(200).json({ success: true, data: response });
-  } catch (err) {
-    console.error('[API ERROR] Failed to delete file:', err.message);
-    return res.status(500).json({ success: false, error: err.message });
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[API] Delete failed:', errorText);
+      return res.status(response.status).json({
+        success: false,
+        error: `Failed to delete file`,
+        details: errorText
+      });
+    }
+
+    return res.status(200).json({ success: true, data: { deleted: true } });
+  } catch (error) {
+    console.error('[API] Delete error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Exception during delete',
+      details: error?.message || String(error)
+    });
   }
 }

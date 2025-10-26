@@ -137,37 +137,5 @@
   <div id="helpButton" class="help-fab" title="Help">?</div>
 
   <script type="module" src="./client.js"></script>
-<!-- Debate Setup Modal -->
-  <div id="debateSetupModal" class="modal hidden">
-    <div class="modal-content">
-      <h2>Debate Setup</h2>
-      <form id="debateSetupForm">
-        <div class="grid two">
-          <label>Opening (sec)
-            <input id="debateOpening" type="number" min="15" max="600" step="5" value="60">
-          </label>
-          <label>Rebuttal (sec)
-            <input id="debateRebuttal" type="number" min="15" max="600" step="5" value="45">
-          </label>
-          <label>Closing (sec)
-            <input id="debateClosing" type="number" min="15" max="600" step="5" value="30">
-          </label>
-          <label>Who starts?
-            <select id="debateStarter">
-              <option value="you" selected>You</option>
-              <option value="mootie">Mootie</option>
-            </select>
-          </label>
-        </div>
-        <label class="checkbox">
-          <input id="enableCoachFeedback" type="checkbox" checked> Coach feedback at end
-        </label>
-        <div class="modal-nav">
-          <button type="button" id="debateCancel">Cancel</button>
-          <button type="submit" id="debateStartBtn" class="primary">Start Debate</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </body>
 </html>
