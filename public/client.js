@@ -420,14 +420,6 @@ async function deleteFile(fileId) {
   }
 }
 
-  const duration = (performance.now() - start).toFixed(1);
-  console.log("⏱️ Duration:", duration + " ms");
-
-  } catch (e) {
-    console.error('delete file error:', e);
-  }
-}
-
 // Export transcript
 function exportTranscript() {
   if (!state.transcript.length) return;
