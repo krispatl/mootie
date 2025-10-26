@@ -1,71 +1,55 @@
 // api/vector-store.js
-// Lists files attached to the configured OpenAI vector store.  Returns
-// an array of objects with id and filename properties.  On any
-// errors or missing configuration the endpoint returns an empty list.
+// List files attached to the configured OpenAI vector store.
 
 export default async function handler(req, res) {
-  // Lists files currently attached to the configured vector store.  This
-  // implementation supports both the legacy v1 vector store API and the newer
-  // Assistants v2 API.  It returns a list of objects with id, filename, size
-  // and creation timestamp if available.
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-  const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
-  if (!OPENAI_API_KEY) {
-    return res.status(500).json({ success: false, error: 'Missing OPENAI_API_KEY' });
-  }
-  if (!VECTOR_STORE_ID) {
-    return res.status(500).json({ success: false, error: 'Missing VECTOR_STORE_ID' });
-  }
   try {
-    // Attempt to list files using the v2 Assistants API path
-    let resp = await fetch(
-      `https://api.openai.com/v1/assistants/v2/vector_stores/${VECTOR_STORE_ID}/files`,
-      { headers: { Authorization: `Bearer ${OPENAI_API_KEY}` } }
-    );
-    // If v2 path not found, fall back to v1 path
-    if (resp.status === 404) {
-      resp = await fetch(
-        `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`,
-        { headers: { Authorization: `Bearer ${OPENAI_API_KEY}` } }
-      );
+    if (req.method !== 'GET') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
-    const text = await resp.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { data: [] };
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
+    if (!OPENAI_API_KEY) return res.status(500).json({ success: false, error: 'Missing OPENAI_API_KEY' });
+    if (!VECTOR_STORE_ID) return res.status(500).json({ success: false, error: 'Missing VECTOR_STORE_ID' });
+
+    // 1) list files in the vector store
+    const listResp = await fetch(`https://api.openai.com/v1/vector_stores/${encodeURIComponent(VECTOR_STORE_ID)}/files`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const listText = await listResp.text();
+    if (!listResp.ok) {
+      return res.status(listResp.status).json({ success: false, error: 'OpenAI list failed', details: listText });
     }
-    const list = Array.isArray(data?.data) ? data.data : [];
-    // Build file metadata results.  Some fields may not exist on all endpoints.
-    const filesWithNames = await Promise.all(
-      list.map(async (file) => {
-        // file may already include filename or name; if not, fetch from /files/:id
-        let filename = file.filename || file.name;
-        let size = file.bytes || file.size;
-        let createdAt = file.created_at || null;
-        if (!filename || size == null) {
-          try {
-            const fr = await fetch(`https://api.openai.com/v1/files/${file.id}`, {
-              headers: { Authorization: `Bearer ${OPENAI_API_KEY}` }
-            });
-            const fd = await fr.json();
-            filename = filename || fd.filename || fd.name || 'Unnamed file';
-            size = size || fd.bytes || fd.size;
-            createdAt = createdAt || fd.created_at;
-          } catch (_) {
-            filename = filename || 'Unnamed file';
-          }
-        }
-        return { id: file.id, filename, size, created_at: createdAt };
-      })
-    );
-    return res.status(200).json({ success: true, data: { vectors: filesWithNames } });
+    let listJson;
+    try { listJson = JSON.parse(listText); } catch { listJson = {}; }
+    const files = Array.isArray(listJson.data) ? listJson.data : [];
+
+    // 2) hydrate filenames
+    const detailed = await Promise.all(files.map(async (f) => {
+      try {
+        const fResp = await fetch(`https://api.openai.com/v1/files/${encodeURIComponent(f.file_id || f.id)}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` }
+        });
+        const fText = await fResp.text();
+        const fJson = JSON.parse(fText);
+        return {
+          id: f.file_id || f.id,
+          filename: fJson.filename || fJson.name || 'file',
+          bytes: fJson.bytes,
+          created_at: fJson.created_at
+        };
+      } catch {
+        return { id: f.file_id || f.id, filename: 'file' };
+      }
+    }));
+
+    return res.status(200).json({ success: true, data: { vectors: detailed } });
   } catch (e) {
-    console.error('Vector list error:', e);
-    return res.status(500).json({ success: false, error: 'Failed to list vector store files', details: e?.message || String(e) });
+    console.error('GET /api/vector-store error', e);
+    return res.status(500).json({ success: false, error: e?.message || String(e) });
   }
 }
