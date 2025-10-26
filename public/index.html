@@ -1,157 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mootie – AI Moot Court Coach</title>
   <meta name="description" content="Practice oral arguments with realtime AI coaching, scoring and feedback." />
-  <link rel="stylesheet" href="./style.css" />
+  <meta name="theme-color" content="#0b0f1a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div id="app" class="container">
     <!-- Navigation Header -->
-    <header class="navbar">
-      <div class="nav-brand">
-        <div class="logo">
-          <i class="fas fa-balance-scale"></i>
-          <span>Mootie</span>
-        </div>
+    <header class="navbar" role="banner">
+      <div class="nav-brand" aria-label="App brand">
+        <button class="logo" id="homeButton" title="Mootie Home" aria-label="Mootie Home">
+          <i class="fas fa-scale-balanced"></i>
+          <span class="brand-text">Mootie</span>
+        </button>
         <div class="nav-tagline">AI Moot Court Coach</div>
       </div>
-      
+
       <div class="nav-controls">
-        <div class="session-info" id="sessionInfo">
+        <div class="session-info" id="sessionInfo" aria-live="polite">
           <i class="fas fa-user-graduate"></i>
           <span>Coach Mode</span>
         </div>
-        <button id="debateToggle" class="btn-debate">
-          <i class="fas fa-gavel"></i>
-          <span>Start Debate</span>
-        </button>
-        <button id="helpButton" class="btn-help" title="Help">
-          <i class="fas fa-question"></i>
-        </button>
+
+        <div class="nav-actions">
+          <button id="themeToggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme (Light/Dark)">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+
+          <button id="helpButton" class="icon-btn" title="Help" aria-label="Open help">
+            <i class="fas fa-circle-question"></i>
+          </button>
+
+          <button id="debateToggle" class="btn-debate" aria-pressed="false">
+            <i class="fas fa-gavel"></i>
+            <span>Start Debate</span>
+          </button>
+        </div>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
       <!-- Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar" aria-label="Controls and Analytics">
         <!-- Mode Selector -->
-        <div class="sidebar-section">
+        <section class="sidebar-section">
           <h3 class="section-title">Role Mode</h3>
-          <div class="mode-selector">
-            <button class="mode-btn active" data-mode="coach" id="modeCoach">
+          <div class="mode-selector" role="tablist" aria-label="Role Mode Selector">
+            <button class="mode-btn active" data-mode="coach" id="modeCoach" role="tab" aria-selected="true">
               <i class="fas fa-user-graduate"></i>
               <span>Coach</span>
             </button>
-            <button class="mode-btn" data-mode="judge" id="modeJudge">
+            <button class="mode-btn" data-mode="judge" id="modeJudge" role="tab" aria-selected="false">
               <i class="fas fa-gavel"></i>
               <span>Judge</span>
             </button>
-            <button class="mode-btn" data-mode="opposition" id="modeOpposition">
+            <button class="mode-btn" data-mode="opposition" id="modeOpposition" role="tab" aria-selected="false">
               <i class="fas fa-people-arrows"></i>
               <span>Opposition</span>
             </button>
           </div>
-        </div>
+        </section>
 
         <!-- Score Dashboard -->
-        <div class="sidebar-section">
+        <section class="sidebar-section">
           <h3 class="section-title">Performance Metrics</h3>
-          <div class="score-dashboard">
+          <div class="score-dashboard" role="region" aria-label="Performance Metrics">
+            <!-- Each metric -->
             <div class="score-metric" id="scoreClarity">
               <div class="metric-header">
                 <span class="metric-label">Clarity</span>
                 <span class="metric-value">0.0</span>
               </div>
-              <div class="metric-bar">
+              <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <div class="metric-fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scoreStructure">
               <div class="metric-header">
                 <span class="metric-label">Structure</span>
                 <span class="metric-value">0.0</span>
               </div>
-              <div class="metric-bar">
+              <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <div class="metric-fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scoreAuthority">
               <div class="metric-header">
                 <span class="metric-label">Authority</span>
                 <span class="metric-value">0.0</span>
               </div>
-              <div class="metric-bar">
+              <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <div class="metric-fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scoreResponsiveness">
               <div class="metric-header">
                 <span class="metric-label">Responsiveness</span>
                 <span class="metric-value">0.0</span>
               </div>
-              <div class="metric-bar">
+              <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <div class="metric-fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scorePersuasiveness">
               <div class="metric-header">
                 <span class="metric-label">Persuasiveness</span>
                 <span class="metric-value">0.0</span>
               </div>
-              <div class="metric-bar">
+              <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <div class="metric-fill" style="width: 0%"></div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Debate Status -->
-        <div id="debateStatus" class="sidebar-section hidden">
+        <section id="debateStatus" class="sidebar-section hidden" aria-live="polite">
           <h3 class="section-title">Debate Session</h3>
           <div class="debate-info">
-            <div class="debate-round">
-              <span class="debate-label">Round:</span>
+            <div class="debate-row">
+              <span class="debate-label">Round</span>
               <span id="roundLabel" class="debate-value">Opening</span>
             </div>
-            <div class="debate-turn">
-              <span class="debate-label">Turn:</span>
+            <div class="debate-row">
+              <span class="debate-label">Turn</span>
               <span id="turnLabel" class="debate-value">Your Turn</span>
             </div>
-            <div class="debate-timer">
-              <span class="debate-label">Time:</span>
+            <div class="debate-row">
+              <span class="debate-label">Time</span>
               <span id="timerLabel" class="debate-value">02:00</span>
             </div>
           </div>
-          <div class="debate-progress">
+          <div class="debate-progress" aria-hidden="true">
             <div id="progressFill" class="progress-fill"></div>
           </div>
-        </div>
+        </section>
 
         <!-- Document Management -->
-        <div class="sidebar-section">
+        <section class="sidebar-section">
           <h3 class="section-title">Case Documents</h3>
-          <div class="documents-panel">
+          <div class="documents-panel" id="dropZone" aria-label="Upload case documents">
             <div class="documents-header">
               <span>Uploaded Sources</span>
-              <button id="uploadBtn" class="btn-upload" title="Upload Document">
-                <i class="fas fa-plus"></i>
-              </button>
+              <div class="doc-actions">
+                <button id="uploadBtn" class="btn-upload" title="Upload Document (U)" aria-label="Upload document">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
             </div>
+
             <ul id="sourceList" class="documents-list">
               <li class="empty-state">No documents uploaded</li>
             </ul>
+
             <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.md" multiple hidden>
+            <div class="drop-hint"><i class="fa-solid fa-upload"></i> Drag & drop files here</div>
           </div>
-        </div>
+        </section>
 
         <!-- Analytics -->
-        <div class="sidebar-section">
+        <section class="sidebar-section">
           <h3 class="section-title">Session Analytics</h3>
           <div class="analytics-panel">
             <button id="coachFeedbackBtn" class="btn-analytics">
@@ -163,29 +183,29 @@
               Export Transcript
             </button>
           </div>
-        </div>
+        </section>
       </aside>
 
       <!-- Chat Area -->
-      <section class="chat-container">
-        <div id="messages" class="messages-container">
-          <div class="welcome-message">
+      <section class="chat-container" aria-label="Conversation">
+        <div id="messages" class="messages-container" aria-live="polite">
+          <div class="welcome-card">
             <div class="welcome-icon">
-              <i class="fas fa-balance-scale"></i>
+              <i class="fas fa-scale-balanced"></i>
             </div>
             <h2>Welcome to Mootie</h2>
             <p>Your AI Moot Court Coach is ready to help you practice arguments and improve your legal reasoning skills.</p>
             <div class="welcome-tips">
               <div class="tip">
                 <i class="fas fa-microphone"></i>
-                <span>Press spacebar or click mic to record</span>
+                <span>Hold <kbd>Space</kbd> or click mic to record</span>
               </div>
               <div class="tip">
-                <i class="fas fa-switch"></i>
+                <i class="fas fa-toggle-on"></i>
                 <span>Switch between Coach, Judge, and Opposition modes</span>
               </div>
               <div class="tip">
-                <i class="fas fa-upload"></i>
+                <i class="fas fa-file-arrow-up"></i>
                 <span>Upload case documents for reference</span>
               </div>
             </div>
@@ -193,11 +213,9 @@
         </div>
 
         <!-- Typing Indicator -->
-        <div id="typingIndicator" class="typing-indicator hidden">
-          <div class="typing-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
+        <div id="typingIndicator" class="typing-indicator hidden" aria-hidden="true">
+          <div class="typing-dots" aria-label="Mootie is typing">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
           </div>
           <span>Mootie is thinking...</span>
         </div>
@@ -205,21 +223,24 @@
         <!-- Input Area -->
         <div class="input-container">
           <div class="input-wrapper">
-            <button id="recordBtn" class="btn-record" title="Hold to record (Spacebar)">
+            <button id="recordBtn" class="btn-record" title="Hold to record (Spacebar)" aria-label="Hold to record">
               <i class="fas fa-microphone"></i>
             </button>
+
             <textarea 
               id="textInput" 
               class="text-input" 
-              placeholder="Type your argument or question..." 
+              placeholder="Type your argument or question…" 
               rows="1"
+              aria-label="Message input"
             ></textarea>
-            <button id="sendBtn" class="btn-send">
+
+            <button id="sendBtn" class="btn-send" aria-label="Send message" disabled>
               <i class="fas fa-paper-plane"></i>
             </button>
           </div>
           <div class="input-hint">
-            <span>Press Enter to send • Shift+Enter for new line</span>
+            <span><kbd>Enter</kbd> to send • <kbd>Shift</kbd>+<kbd>Enter</kbd> new line • <kbd>U</kbd> upload • <kbd>Esc</kbd> cancel</span>
           </div>
         </div>
       </section>
@@ -227,21 +248,21 @@
   </div>
 
   <!-- Help Modal -->
-  <div id="helpOverlay" class="modal hidden">
+  <div id="helpOverlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <div class="modal-content help">
       <div class="help-header">
-        <h2>Mootie Guide</h2>
-        <button id="closeHelp" class="btn-close">
-          <i class="fas fa-times"></i>
+        <h2 id="helpTitle">Mootie Guide</h2>
+        <button id="closeHelp" class="btn-close" aria-label="Close help">
+          <i class="fas fa-xmark"></i>
         </button>
       </div>
       <div class="help-content">
         <div class="help-section">
           <h3><i class="fas fa-microphone"></i> Voice Input</h3>
-          <p>Press the microphone button or <kbd>Spacebar</kbd> to start recording your arguments.</p>
+          <p>Hold the microphone button or press <kbd>Space</kbd> to record your arguments.</p>
         </div>
         <div class="help-section">
-          <h3><i class="fas fa-switch"></i> Role Modes</h3>
+          <h3><i class="fas fa-toggle-on"></i> Role Modes</h3>
           <p>Switch between Coach, Judge, and Opposition for different perspectives and feedback styles.</p>
         </div>
         <div class="help-section">
@@ -249,24 +270,29 @@
           <p>Track your performance across clarity, structure, authority, responsiveness, and persuasiveness.</p>
         </div>
         <div class="help-section">
-          <h3><i class="fas fa-file-upload"></i> Documents</h3>
+          <h3><i class="fas fa-file-arrow-up"></i> Documents</h3>
           <p>Upload legal documents and case files for Mootie to reference during your practice sessions.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Add this simple JavaScript to make basic interactions work -->
+  <!-- Enhanced interactions (keeps your original logic, adds UX niceties) -->
   <script>
-    // Basic functionality until we integrate the full client.js
+    // Persisted theme
+    (function initTheme(){
+      const saved = localStorage.getItem('mootie-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+
     class SimpleMootieApp {
       constructor() {
         this.currentMode = 'coach';
         this.isRecording = false;
-        this.initializeApp();
-      }
-
-      initializeApp() {
+        this.debateTimer = null;
+        this.debateSeconds = 120;
         this.bindEvents();
         this.updateModeDisplay();
       }
@@ -274,22 +300,43 @@
       bindEvents() {
         // Mode switching
         document.querySelectorAll('.mode-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            this.setMode(e.currentTarget.dataset.mode);
-          });
+          btn.addEventListener('click', (e) => this.setMode(e.currentTarget.dataset.mode));
         });
 
-        // Recording button
+        // Recording button + keyboard
         const recordBtn = document.getElementById('recordBtn');
         recordBtn.addEventListener('mousedown', () => this.startRecording());
         recordBtn.addEventListener('mouseup', () => this.stopRecording());
         recordBtn.addEventListener('mouseleave', () => this.stopRecording());
 
-        // Send button
+        // Space to record (hold)
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space' && !e.repeat && !this.isTypingInInput()) {
+            e.preventDefault();
+            this.startRecording();
+          }
+          if ((e.key === 'u' || e.key === 'U') && !this.isTypingInInput()) {
+            e.preventDefault();
+            document.getElementById('fileInput').click();
+          }
+          if (e.key === 'Escape') {
+            this.stopRecording();
+            this.hideHelp();
+          }
+        });
+        document.addEventListener('keyup', (e) => {
+          if (e.code === 'Space') this.stopRecording();
+        });
+
+        // Send button + Enter to send
         const sendBtn = document.getElementById('sendBtn');
         const textInput = document.getElementById('textInput');
-        
+
         sendBtn.addEventListener('click', () => this.sendMessage());
+        textInput.addEventListener('input', () => {
+          this.autoGrow(textInput);
+          sendBtn.disabled = !textInput.value.trim();
+        });
         textInput.addEventListener('keypress', (e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -297,12 +344,32 @@
           }
         });
 
-        // File upload
+        // Drag & drop upload
         const uploadBtn = document.getElementById('uploadBtn');
         const fileInput = document.getElementById('fileInput');
-        
+        const dropZone  = document.getElementById('dropZone');
+
         uploadBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+
+        ;['dragenter','dragover'].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.add('dragging');
+          });
+        });
+        ;['dragleave','drop'].forEach(evt => {
+          dropZone.addEventListener(evt, (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.remove('dragging');
+          });
+        });
+        dropZone.addEventListener('drop', (e) => {
+          const dt = e.dataTransfer;
+          if (dt && dt.files && dt.files.length) {
+            this.handleFileUpload({ target: { files: dt.files }});
+          }
+        });
 
         // Debate toggle
         const debateToggle = document.getElementById('debateToggle');
@@ -311,37 +378,60 @@
         // Help
         document.getElementById('helpButton').addEventListener('click', () => this.showHelp());
         document.getElementById('closeHelp').addEventListener('click', () => this.hideHelp());
+        document.getElementById('helpOverlay').addEventListener('click', (e) => {
+          if (e.target.id === 'helpOverlay') this.hideHelp();
+        });
 
         // Analytics buttons
         document.getElementById('coachFeedbackBtn').addEventListener('click', () => this.getCoachFeedback());
         document.getElementById('exportTranscript').addEventListener('click', () => this.exportTranscript());
+
+        // Theme toggle
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', () => {
+          const html = document.documentElement;
+          const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          html.setAttribute('data-theme', newTheme);
+          localStorage.setItem('mootie-theme', newTheme);
+          themeToggle.innerHTML = newTheme === 'dark'
+            ? '<i class="fa-solid fa-moon"></i>'
+            : '<i class="fa-solid fa-sun"></i>';
+        });
+        // Sync icon with current theme
+        (function syncThemeIcon(){
+          const theme = document.documentElement.getAttribute('data-theme');
+          themeToggle.innerHTML = theme === 'dark'
+            ? '<i class="fa-solid fa-moon"></i>'
+            : '<i class="fa-solid fa-sun"></i>';
+        })();
+      }
+
+      isTypingInInput() {
+        const ae = document.activeElement;
+        return ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.isContentEditable);
+      }
+
+      autoGrow(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+      }
+
+      updateModeDisplay() {
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+          const active = btn.dataset.mode === this.currentMode;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
       }
 
       setMode(mode) {
         this.currentMode = mode;
-        
-        // Update UI
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.mode === mode);
-        });
+        this.updateModeDisplay();
 
-        // Update session info
         const sessionInfo = document.getElementById('sessionInfo');
-        const icons = {
-          coach: 'fa-user-graduate',
-          judge: 'fa-gavel',
-          opposition: 'fa-people-arrows'
-        };
-        const labels = {
-          coach: 'Coach Mode',
-          judge: 'Judge Mode',
-          opposition: 'Opposition Mode'
-        };
-
-        sessionInfo.innerHTML = `
-          <i class="fas ${icons[mode]}"></i>
-          <span>${labels[mode]}</span>
-        `;
+        const icons = { coach: 'fa-user-graduate', judge: 'fa-gavel', opposition: 'fa-people-arrows' };
+        const labels = { coach: 'Coach Mode', judge: 'Judge Mode', opposition: 'Opposition Mode' };
+        sessionInfo.innerHTML = `<i class="fas ${icons[mode]}"></i><span>${labels[mode]}</span>`;
 
         this.addMessage('assistant', `Switched to ${labels[mode]}. Ready for your arguments.`);
       }
@@ -350,70 +440,61 @@
         if (this.isRecording) return;
         this.isRecording = true;
         document.getElementById('recordBtn').classList.add('recording');
-        this.addMessage('assistant', 'Recording started... Speak now.');
+        this.addMessage('assistant', 'Recording started… Speak now.');
       }
 
       stopRecording() {
         if (!this.isRecording) return;
         this.isRecording = false;
         document.getElementById('recordBtn').classList.remove('recording');
-        // Simulate transcription
         setTimeout(() => {
           const simulatedText = "This is a simulated transcription. In the full version, this would be your actual speech.";
-          document.getElementById('textInput').value = simulatedText;
-        }, 1000);
+          const input = document.getElementById('textInput');
+          input.value = simulatedText;
+          this.autoGrow(input);
+          document.getElementById('sendBtn').disabled = !input.value.trim();
+        }, 400);
       }
 
       sendMessage() {
         const textInput = document.getElementById('textInput');
         const message = textInput.value.trim();
-        
         if (!message) return;
 
-        // Add user message
         this.addMessage('user', message);
         textInput.value = '';
+        this.autoGrow(textInput);
+        document.getElementById('sendBtn').disabled = true;
 
-        // Show typing indicator
         this.showTypingIndicator();
-
-        // Simulate AI response
         setTimeout(() => {
           this.hideTypingIndicator();
           const responses = {
-            coach: "That's a good start. Consider structuring your argument with clear points: first, establish the legal standard; second, apply the facts; third, address counterarguments.",
-            judge: "Counsel, I'm not convinced by that argument. Where's your supporting precedent? The standard requires more than mere assertion.",
-            opposition: "I must object to that characterization. The precedent you're relying on actually supports our position when you consider the full context of the decision."
+            coach: "Strong start. Try a clean three-step structure: (1) state the standard, (2) apply key facts, (3) pre-empt the counterargument with a case cite.",
+            judge: "Counsel, where in the record is that supported? Also, what binding precedent compels that conclusion?",
+            opposition: "Respectfully, the cited case cuts against you on causation. Distinguish it or address why it should not control here."
           };
-          
           this.addMessage('assistant', responses[this.currentMode]);
           this.updateScores();
-        }, 2000);
+        }, 900);
       }
 
       addMessage(role, content) {
         const messagesContainer = document.getElementById('messages');
-        
-        // Remove welcome message if it's the first real message
-        const welcomeMessage = messagesContainer.querySelector('.welcome-message');
-        if (welcomeMessage && role === 'user') {
-          welcomeMessage.remove();
-        }
+        const welcome = messagesContainer.querySelector('.welcome-card');
+        if (welcome && role === 'user') welcome.remove();
 
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
-        
-        const timestamp = new Date().toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         messageDiv.innerHTML = `
-          <div class="message-meta">
-            ${role === 'user' ? 'You' : 'Mootie'} • ${timestamp}
-          </div>
-          <div class="message-bubble">
-            <div class="message-content">${content}</div>
+          <div class="avatar">${role === 'user' ? '<i class="fa-regular fa-user"></i>' : '<i class="fa-solid fa-scale-balanced"></i>'}</div>
+          <div class="bubble-wrap">
+            <div class="message-meta">${role === 'user' ? 'You' : 'Mootie'} • ${timestamp}</div>
+            <div class="message-bubble">
+              <div class="message-content">${content}</div>
+            </div>
           </div>
         `;
 
@@ -430,41 +511,51 @@
       }
 
       updateScores() {
-        // Simulate score updates
         const metrics = ['Clarity', 'Structure', 'Authority', 'Responsiveness', 'Persuasiveness'];
-        
         metrics.forEach(metric => {
-          const score = (Math.random() * 3 + 7).toFixed(1); // Random scores between 7-10
-          const element = document.getElementById(`score${metric}`);
-          
-          if (element) {
-            const valueElement = element.querySelector('.metric-value');
-            const fillElement = element.querySelector('.metric-fill');
-            
-            valueElement.textContent = score;
-            fillElement.style.width = `${score * 10}%`;
-          }
+          const score = (Math.random() * 3 + 7).toFixed(1); // 7.0–10.0
+          const el = document.getElementById(`score${metric}`);
+          if (!el) return;
+          const valueEl = el.querySelector('.metric-value');
+          const fillEl  = el.querySelector('.metric-fill');
+          valueEl.textContent = score;
+          const pct = Math.min(100, Math.max(0, score * 10));
+          fillEl.style.width = `${pct}%`;
+          el.querySelector('.metric-bar').setAttribute('aria-valuenow', pct.toString());
         });
       }
 
       handleFileUpload(event) {
-        const files = Array.from(event.target.files);
+        const files = Array.from(event.target.files || []);
         if (files.length > 0) {
+          const list = document.getElementById('sourceList');
+          list.querySelector('.empty-state')?.remove();
+          files.forEach(f => {
+            const li = document.createElement('li');
+            li.className = 'doc-item';
+            li.innerHTML = `<i class="fa-regular fa-file-lines"></i><span class="doc-name" title="${f.name}">${f.name}</span>`;
+            list.appendChild(li);
+          });
           this.addMessage('assistant', `Uploaded ${files.length} file(s). These will be available for reference in our discussions.`);
         }
-        event.target.value = '';
+        // Reset file input if it exists
+        if (event.target && event.target.value !== undefined) {
+          event.target.value = '';
+        }
       }
 
       toggleDebateMode() {
         const debateToggle = document.getElementById('debateToggle');
         const debateStatus = document.getElementById('debateStatus');
-        
+
         if (debateStatus.classList.contains('hidden')) {
+          debateToggle.setAttribute('aria-pressed', 'true');
           debateToggle.innerHTML = '<i class="fas fa-stop"></i><span>End Debate</span>';
           debateStatus.classList.remove('hidden');
           this.addMessage('assistant', 'Debate session started! You have 2 minutes per turn.');
           this.startDebateTimer();
         } else {
+          debateToggle.setAttribute('aria-pressed', 'false');
           debateToggle.innerHTML = '<i class="fas fa-gavel"></i><span>Start Debate</span>';
           debateStatus.classList.add('hidden');
           this.addMessage('assistant', 'Debate session ended.');
@@ -473,16 +564,15 @@
       }
 
       startDebateTimer() {
-        let timeRemaining = 120;
+        let timeRemaining = this.debateSeconds;
         this.updateTimerDisplay(timeRemaining);
-        
+        this.stopDebateTimer(); // clear any existing
         this.debateTimer = setInterval(() => {
           timeRemaining--;
           this.updateTimerDisplay(timeRemaining);
-          
           if (timeRemaining <= 0) {
             this.stopDebateTimer();
-            this.addMessage('assistant', "Time's up! Switching turns...");
+            this.addMessage('assistant', "Time's up! Switching turns…");
           }
         }, 1000);
       }
@@ -497,20 +587,19 @@
       updateTimerDisplay(seconds) {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
-        document.getElementById('timerLabel').textContent = 
+        document.getElementById('timerLabel').textContent =
           `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-        
-        // Update progress bar
-        const progress = (120 - seconds) / 120 * 100;
+
+        const progress = (this.debateSeconds - seconds) / this.debateSeconds * 100;
         document.getElementById('progressFill').style.width = `${progress}%`;
       }
 
       getCoachFeedback() {
-        this.addMessage('assistant', "Based on your performance: Your argument structure is strong, but consider citing more specific precedents. Work on transitioning smoothly between points and anticipating counterarguments more effectively.");
+        this.addMessage('assistant', "Based on your performance: strong structure and tone. Next: cite at least one controlling case per point, tighten transitions, and lead with your best fact or rule application.");
       }
 
       exportTranscript() {
-        this.addMessage('assistant', "Transcript export functionality would be implemented here in the full version.");
+        this.addMessage('assistant', "Transcript export (TXT/PDF) will appear here in the full version.");
       }
 
       showHelp() {
@@ -522,7 +611,6 @@
       }
     }
 
-    // Initialize the app when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
       window.app = new SimpleMootieApp();
     });
