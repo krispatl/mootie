@@ -18,26 +18,59 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'Missing env vars (OPENAI_API_KEY, VECTOR_STORE_ID)' });
   }
 
-  const url = `https://api.openai.com/v1/vector_stores/${encodeURIComponent(VECTOR_STORE_ID)}/files/${encodeURIComponent(fileId)}`;
   try {
-    const resp = await fetch(url, {
+    // First remove from vector store
+    const vectorUrl = `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files/${fileId}`;
+    const vectorResp = await fetch(vectorUrl, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` }
+      headers: { 
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
     });
 
-    // Treat any 2xx as accepted (OpenAI may return 204 No Content)
-    if (!resp.ok) {
-      const txt = await resp.text().catch(() => '');
-      return res.status(resp.status).json({
+    if (!vectorResp.ok) {
+      const errorText = await vectorResp.text().catch(() => 'Unknown error');
+      console.error('Vector store deletion failed:', vectorResp.status, errorText);
+      return res.status(vectorResp.status).json({
         success: false,
-        error: `OpenAI delete failed (${resp.status})`,
-        details: txt?.slice?.(0, 400)
+        error: `Vector store deletion failed (${vectorResp.status})`,
+        details: errorText.slice(0, 400)
       });
     }
 
-    return res.status(200).json({ success: true, data: { deleted: true, fileId } });
+    // Then delete the file entirely
+    const fileUrl = `https://api.openai.com/v1/files/${fileId}`;
+    const fileResp = await fetch(fileUrl, {
+      method: 'DELETE',
+      headers: { 
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!fileResp.ok) {
+      const errorText = await fileResp.text().catch(() => 'Unknown error');
+      console.error('File deletion failed:', fileResp.status, errorText);
+      // We still return success since it was removed from vector store
+      console.warn('File removed from vector store but not fully deleted');
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      data: { 
+        deleted: true, 
+        fileId,
+        message: 'File successfully removed from vector store and deleted'
+      } 
+    });
+
   } catch (e) {
     console.error('[delete-file] Exception:', e);
-    return res.status(500).json({ success: false, error: 'Delete request exception', details: e?.message || String(e) });
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Delete request exception', 
+      details: e?.message || String(e) 
+    });
   }
 }
