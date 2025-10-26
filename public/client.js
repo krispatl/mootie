@@ -6,16 +6,6 @@
 // lookups.  If you extend functionality, keep functions small and
 // pure where possible.
 
-
-// Debate Setup Modal refs (v4)
-const debateSetupModal = document.getElementById('debateSetupModal');
-const debateSetupForm = document.getElementById('debateSetupForm');
-const debateOpening = document.getElementById('debateOpening');
-const debateRebuttal = document.getElementById('debateRebuttal');
-const debateClosing = document.getElementById('debateClosing');
-const debateStarter = document.getElementById('debateStarter');
-const debateCancel = document.getElementById('debateCancel');
-const enableCoachFeedback = document.getElementById('enableCoachFeedback');
 const state = {
   mode: 'coach',
   scores: {
@@ -67,30 +57,6 @@ const roundLabel = document.getElementById('roundLabel');
 const turnLabel = document.getElementById('turnLabel');
 const progressFill = document.getElementById('progressFill');
 const nextRoundBtn = document.getElementById('nextRoundBtn');
-
-// Debate Engine v4 helpers
-function v4OpenDebateSetup() {
-  if (!debateSetupModal) { try { startDebate(); } catch(e){} return; }
-  debateSetupModal.classList.remove('hidden');
-}
-function v4CloseDebateSetup() {
-  if (debateSetupModal) debateSetupModal.classList.add('hidden');
-}
-function v4StartDebateFromConfig() {
-  if (!debateSetupModal || !debateOpening || !debateRebuttal || !debateClosing || !debateStarter) { try { startDebate(); } catch(e){} return; }
-  try {
-    const opening = Math.max(15, Math.min(600, parseInt(debateOpening.value || '60', 10)));
-    const rebuttal = Math.max(15, Math.min(600, parseInt(debateRebuttal.value || '45', 10)));
-    const closing = Math.max(15, Math.min(600, parseInt(debateClosing.value || '30', 10)));
-    const starter = (debateStarter.value === 'mootie') ? 'mootie' : 'you';
-    try { state.debateRounds = [{ label: 'Opening', duration: opening }, { label: 'Rebuttal', duration: rebuttal }, { label: 'Closing', duration: closing }]; } catch(_){}
-    try { state.speakerFirstUser = (starter !== 'mootie'); } catch(_){}
-    try { state.enableCoachFeedback = !!(enableCoachFeedback && enableCoachFeedback.checked); } catch(_){}
-  } catch(_){}
-  v4CloseDebateSetup();
-  try { startDebate(); } catch(e){ console.error('startDebate error', e); }
-}
-
 // Onboarding and help elements
 const onboardingModal = document.getElementById('onboardingModal');
 const onboardingTitle = document.getElementById('onboardingTitle');
@@ -186,21 +152,6 @@ window.addEventListener('DOMContentLoaded', () => {
   // Initial data
   refreshVectorList();
   updateScoreUI();
-  // v4 debate setup hooks
-  try {
-    if (debateToggle) {
-      debateToggle.addEventListener('click', (e) => {
-        if (!state.debate) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          v4OpenDebateSetup();
-        }
-      }, { capture: true });
-    }
-    if (debateCancel) debateCancel.addEventListener('click', v4CloseDebateSetup);
-    if (debateSetupForm) debateSetupForm.addEventListener('submit', (e) => { e.preventDefault(); v4StartDebateFromConfig(); });
-  } catch(e) { console.warn('v4 hook error', e); }
-
 });
 
 function setMode(mode) {
@@ -346,7 +297,6 @@ async function startRecording() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(stream);
     state.mediaRecorder = mediaRecorder;
-    try { document.body.classList.add('user-speaking'); } catch(_){ }
     state.audioChunks = [];
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) state.audioChunks.push(e.data);
@@ -394,7 +344,6 @@ async function startRecording() {
 function stopRecording() {
   if (!state.recording || !state.mediaRecorder) return;
   state.mediaRecorder.stop();
-  try { document.body.classList.remove('user-speaking'); } catch(_){ }
 }
 
 // Upload document
@@ -614,30 +563,10 @@ function updateDebateDisplay() {
 
 // Audio playback helper
 function tryPlayAudio(base64) {
-  try { if (state && state.debate && state.currentTurn === 1) { document.body.classList.add('ai-speaking'); v4PauseDebateTimer(); } } catch(_){}
   try {
-try {
     const audio = new Audio('data:audio/mp3;base64,' + base64);
     audio.play();
-  
-    try {
-      if (state && state.debate && state.currentTurn === 1) {
-        document.body.classList.remove('ai-speaking');
-        v4ResumeDebateTimer();
-        handleTurnEnd();
-      }
-    } catch(_){}
   } catch (e) {
-    console.error('audio playback error:', e);
-    try {
-      if (state && state.debate && state.currentTurn === 1) {
-        document.body.classList.remove('ai-speaking');
-        v4ResumeDebateTimer();
-        handleTurnEnd();
-      }
-    } catch(_){}
-  }
-} catch (e) {
     console.error('audio playback error:', e);
   }
 }
@@ -744,17 +673,3 @@ window.addEventListener('load', () => {
     }, 600);
   }
 });
-function v4PauseDebateTimer() {
-  if (state.debateTimer) { clearInterval(state.debateTimer); state.debateTimer = null; }
-}
-function v4ResumeDebateTimer() {
-  if (!state.debate) return;
-  if (state.debateTimer) return;
-  state.debateTimer = setInterval(() => {
-    try {
-      state.debateRemaining--;
-      if (state.debateRemaining <= 0) { handleTurnEnd(); }
-      updateDebateDisplay();
-    } catch(e) { console.warn('timer tick error', e); }
-  }, 1000);
-}
