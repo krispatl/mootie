@@ -46,7 +46,8 @@ const sessionInfo = document.getElementById('sessionInfo');
 const debateToggle = document.getElementById('debateToggle');
 const debateStatus = document.getElementById('debateStatus');
 const roundLabel = document.getElementById('roundLabel');
-const turnLabel = document.getElementBy('turnLabel');
+const turnLabel = document.getElementById('turnLabel');
+
 const progressFill = document.getElementById('progressFill');
 const nextRoundBtn = document.getElementById('nextRoundBtn');
 
