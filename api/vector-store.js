@@ -1,5 +1,5 @@
 // api/vector-store.js
-// Lists files currently attached to your vector store and resolves their filenames/bytes/created_at.
+// Lists files currently attached to your vector store and resolves filenames/bytes/created_at.
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -62,3 +62,4 @@ export default async function handler(req, res) {
     });
   }
 }
+
