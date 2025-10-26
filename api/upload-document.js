@@ -1,13 +1,8 @@
 // api/upload-document.js
-// Upload a document to OpenAI Files, then attach it to your Vector Store.
+// Uploads a document to OpenAI Files then attaches it to your vector store.
 // Accepts multipart/form-data with "document" or "file" field.
 
-export const config = {
-  api: {
-    bodyParser: false,
-    sizeLimit: '50mb'
-  },
-};
+export const config = { api: { bodyParser: false, sizeLimit: '50mb' } };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,7 +20,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Expected multipart/form-data' });
     }
 
-    // --- Minimal multipart parser for single file ("document" or "file") ---
+    // --- Minimal multipart parse (single file: "document" or "file") ---
     const boundaryToken = ct.split('boundary=')[1];
     if (!boundaryToken) return res.status(400).json({ success: false, error: 'Malformed multipart (no boundary)' });
     const boundary = '--' + boundaryToken;
@@ -78,7 +73,7 @@ export default async function handler(req, res) {
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2',
+        'OpenAI-Beta': 'assistants=v2'
       },
       body: JSON.stringify({ file_id }),
     });
@@ -90,9 +85,9 @@ export default async function handler(req, res) {
         details: attachText.slice(0, 1000),
       });
     }
+
     let attached;
     try { attached = JSON.parse(attachText); } catch { attached = {}; }
-
     return res.status(200).json({ success: true, data: { file_id, vector_status: attached } });
   } catch (e) {
     return res.status(500).json({
