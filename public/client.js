@@ -392,15 +392,15 @@ async function refreshVectorList() {
     sourceList.innerHTML = '<li class="empty">Unable to load sources</li>';
   }
 }
-
 async function deleteFile(fileId) {
   console.log('[deleteFile]', fileId);
   const start = performance.now();
+
   try {
     const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, {
-      method: 'DELETE', // REQUIRED or you’ll get 405
+      method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       }
     });
 
@@ -411,7 +411,15 @@ async function deleteFile(fileId) {
       console.error('❌ Delete failed:', data.error || 'Unknown error');
     } else {
       console.log('✅ File deleted successfully.');
-      removeFileFromUI(fileId); // remove from frontend
+
+      // ✅ Inline UI cleanup
+      const el = document.querySelector(`[data-file-id="${fileId}"]`);
+      if (el) {
+        el.remove();
+        console.log(`🧹 Removed element with data-file-id="${fileId}"`);
+      } else {
+        console.warn(`⚠️ No element found for data-file-id="${fileId}"`);
+      }
     }
 
     console.log('⏱️ Duration:', (performance.now() - start).toFixed(1), 'ms');
@@ -419,6 +427,7 @@ async function deleteFile(fileId) {
     console.error('🔥 Exception during delete:', err);
   }
 }
+
 
 // Export transcript
 function exportTranscript() {
