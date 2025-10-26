@@ -1,141 +1,845 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mootie – AI Moot Court Coach</title>
-  <!--
-    This is the main entry point for the enhanced Mootie web app.  The layout is
-    designed to feel like a modern, professional moot court platform while
-    remaining fully responsive.  Buttons and panels are wired up via
-    client.js and styled via style.css.  Do not remove IDs as the JS relies
-    on them.
-  -->
-  <meta name="description" content="Practice oral arguments with realtime AI coaching, scoring and feedback." />
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-  <div id="app" class="container">
-    <!-- Top navigation with logo, session status and debate toggle -->
-    <header class="topbar">
-      <div class="logo">⚖️ Mootie</div>
-      <div class="session-info" id="sessionInfo">Ready to debate</div>
-      <button id="debateToggle" class="debate-btn">🗣️ Start Debate Mode</button>
-    </header>
+/* Modern CSS Variables */
+:root {
+  /* Colors */
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #8b5cf6;
+  --secondary: #06b6d4;
+  --accent: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  
+  /* Neutrals */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border: #334155;
+  --border-light: #475569;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-light));
+  --gradient-secondary: linear-gradient(135deg, var(--secondary), var(--accent));
+  --gradient-bg: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Spacing */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+}
 
-    <!-- Mode selector -->
-    <nav class="mode-nav">
-      <button class="mode-btn" data-mode="coach" id="modeCoach">Coach</button>
-      <button class="mode-btn" data-mode="judge" id="modeJudge">Judge</button>
-      <button class="mode-btn" data-mode="opposition" id="modeOpposition">Opposition</button>
-    </nav>
+/* Reset & Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-    <!-- Scoreboard area -->
-    <section class="scoreboard" id="scoreboard">
-      <div class="score-row" id="scoreClarity">
-        <span class="label">Clarity</span>
-        <div class="bar"><div class="fill" style="width:0%"></div></div>
-        <span class="value">0</span>
-      </div>
-      <div class="score-row" id="scoreStructure">
-        <span class="label">Structure</span>
-        <div class="bar"><div class="fill" style="width:0%"></div></div>
-        <span class="value">0</span>
-      </div>
-      <div class="score-row" id="scoreAuthority">
-        <span class="label">Authority</span>
-        <div class="bar"><div class="fill" style="width:0%"></div></div>
-        <span class="value">0</span>
-      </div>
-      <div class="score-row" id="scoreResponsiveness">
-        <span class="label">Responsiveness</span>
-        <div class="bar"><div class="fill" style="width:0%"></div></div>
-        <span class="value">0</span>
-      </div>
-      <div class="score-row" id="scorePersuasiveness">
-        <span class="label">Persuasiveness</span>
-        <div class="bar"><div class="fill" style="width:0%"></div></div>
-        <span class="value">0</span>
-      </div>
-      <!-- Debate status and progress bar (hidden until debate mode is active) -->
-      <div id="debateStatus" class="debate-status hidden">
-        <div class="debate-info">
-          <span id="roundLabel">Opening</span>
-          •
-          <span id="turnLabel">Your Turn</span>
-        </div>
-        <div class="debate-progress">
-          <div id="progressFill" class="progress-fill"></div>
-        </div>
-        <button id="nextRoundBtn" class="next-round-btn hidden">Next Round</button>
-      </div>
-    </section>
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
 
-    <main class="main">
-      <!-- Sidebar: sources and transcript/analytics -->
-      <aside class="sidebar" id="sidebar">
-        <div class="panel sources">
-          <h3>Sources</h3>
-          <ul id="sourceList" class="source-list"></ul>
-          <button id="uploadBtn" class="upload-btn">Upload Evidence</button>
-          <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.md" multiple hidden>
-        </div>
-        <div class="panel transcript">
-          <h3>Transcript &amp; Analytics</h3>
-          <div id="transcriptList" class="transcript-list"></div>
-          <button id="coachFeedbackBtn" class="feedback-btn">Coach Feedback</button>
-          <button id="exportTranscript" class="export-btn">Export Transcript</button>
-        </div>
-      </aside>
+/* Container */
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gradient-bg);
+}
 
-      <!-- Chat area -->
-      <section class="chat-area">
-        <div id="messages" class="messages"></div>
-        <div id="typingIndicator" class="typing-indicator hidden">
-          ⚖️ Mootie is deliberating<span class="dot one">.</span><span class="dot two">.</span><span class="dot three">.</span>
-        </div>
-        <div class="input-controls">
-          <button id="recordBtn" class="record-btn" title="Hold to record">🎤 Hold to Record</button>
-          <textarea id="textInput" class="text-input" placeholder="Type your argument…" rows="1"></textarea>
-          <button id="sendBtn" class="send-btn">Send</button>
-        </div>
-      </section>
-    </main>
+/* Navigation */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
 
-    <footer class="footer">
-      <small>&copy; 2025 Mootie AI</small>
-    </footer>
-  </div>
-  <!-- Onboarding Modal -->
-  <div id="onboardingModal" class="modal hidden">
-    <div class="modal-content">
-      <h2 id="onboardingTitle">Welcome to Mootie ⚖️</h2>
-      <p id="onboardingText">Your AI Moot Court Coach will guide you through key features.</p>
-      <div class="modal-nav">
-        <button id="onboardingPrev">Back</button>
-        <button id="onboardingNext">Next</button>
-      </div>
-    </div>
-  </div>
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 
-  <!-- Quick Help Overlay -->
-  <div id="helpOverlay" class="hidden">
-    <div class="help-content">
-      <h3>🧭 How to Use Mootie</h3>
-      <ul>
-        <li><strong>🎙️ Voice:</strong> Press the mic or <strong>spacebar</strong> to record.</li>
-        <li><strong>⚖️ Modes:</strong> Choose <em>Coach</em>, <em>Judge</em>, or <em>Opposition</em> for different perspectives.</li>
-        <li><strong>🧑‍🏫 Coach Feedback:</strong> Get personalized critique after each debate.</li>
-        <li><strong>📊 Scoring:</strong> Track your clarity, structure, and persuasiveness scores.</li>
-        <li><strong>📁 Upload Docs:</strong> Add legal materials for case references.</li>
-      </ul>
-      <button id="closeHelp">Close</button>
-    </div>
-  </div>
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
-  <!-- Floating Help Button -->
-  <div id="helpButton" class="help-fab" title="Help">?</div>
+.logo i {
+  font-size: 1.75rem;
+}
 
-  <script type="module" src="./client.js"></script>
-</body>
-</html>
+.nav-tagline {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.session-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn-debate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-debate:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-help {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-help:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+/* Mode Selector */
+.mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.mode-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.mode-btn.active {
+  background: var(--gradient-primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+/* Score Dashboard */
+.score-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.score-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.metric-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.metric-bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.metric-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* Documents Panel */
+.documents-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.documents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.btn-upload {
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-upload:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.documents-list {
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.documents-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.documents-list .file-name {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.documents-list .delete-btn {
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.documents-list .delete-btn:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 2rem 1rem;
+}
+
+/* Analytics Buttons */
+.analytics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.btn-analytics {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.btn-analytics:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+/* Chat Container */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.messages-container {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Welcome Message */
+.welcome-message {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+}
+
+.welcome-icon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}
+
+.welcome-message h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcome-message p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.tip {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.tip i {
+  color: var(--primary);
+  width: 16px;
+}
+
+/* Messages */
+.message {
+  display: flex;
+  flex-direction: column;
+  max-width: 80%;
+  animation: messageSlide 0.3s ease-out;
+}
+
+.message.user {
+  align-self: flex-end;
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.message-bubble {
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-xl);
+  position: relative;
+  box-shadow: var(--shadow-md);
+}
+
+.message.user .message-bubble {
+  background: var(--gradient-primary);
+  color: white;
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.message.assistant .message-bubble {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.message-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.message-content {
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.message-references {
+  font-size: 0.75rem;
+  color: var(--primary);
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+@keyframes messageSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Input Container */
+.input-container {
+  padding: 1.5rem 2rem;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.btn-record {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-record:hover, .btn-record.recording {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+.btn-record.recording {
+  animation: pulse 2s infinite;
+}
+
+.text-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  resize: none;
+  max-height: 120px;
+  min-height: 24px;
+  line-height: 1.5;
+}
+
+.text-input:focus {
+  outline: none;
+}
+
+.text-input::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-send {
+  padding: 0.75rem;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-send:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.input-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Modals */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content.help {
+  max-width: 600px;
+}
+
+.help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 2rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.btn-close {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.btn-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.help-content {
+  padding: 2rem;
+}
+
+.help-section {
+  margin-bottom: 2rem;
+}
+
+.help-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.125rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.help-section h3 i {
+  color: var(--primary);
+  width: 20px;
+}
+
+.help-section p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Debate Status */
+.debate-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.debate-round,
+.debate-turn,
+.debate-timer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.debate-label {
+  color: var(--text-secondary);
+}
+
+.debate-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.debate-progress {
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 4px;
+  transition: width 1s linear;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .main-content {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  
+  .sidebar {
+    width: 100%;
+    max-width: none;
+  }
+  
+  .navbar {
+    padding: 1rem;
+  }
+  
+  .nav-tagline {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .messages-container {
+    padding: 1rem;
+  }
+  
+  .input-container {
+    padding: 1rem;
+  }
+  
+  .message {
+    max-width: 90%;
+  }
+  
+  .welcome-message {
+    padding: 2rem 1rem;
+  }
+  
+  .welcome-tips {
+    gap: 0.75rem;
+  }
+  
+  .tip {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .nav-controls {
+    justify-content: space-between;
+  }
+  
+  .main-content {
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+  
+  .sidebar-section {
+    padding: 1rem;
+  }
+}
