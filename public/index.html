@@ -1,845 +1,531 @@
-/* Modern CSS Variables */
-:root {
-  /* Colors */
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --primary-light: #8b5cf6;
-  --secondary: #06b6d4;
-  --accent: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  
-  /* Neutrals */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --border: #334155;
-  --border-light: #475569;
-  
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-light));
-  --gradient-secondary: linear-gradient(135deg, var(--secondary), var(--accent));
-  --gradient-bg: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  
-  /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  
-  /* Spacing */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
-}
-
-/* Reset & Base Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: var(--font-sans);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  line-height: 1.6;
-  overflow-x: hidden;
-}
-
-/* Container */
-.container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--gradient-bg);
-}
-
-/* Navigation */
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 2rem;
-  background: rgba(30, 41, 59, 0.8);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.logo i {
-  font-size: 1.75rem;
-}
-
-.nav-tagline {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.nav-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.session-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* Buttons */
-.btn-debate {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-md);
-}
-
-.btn-debate:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
-}
-
-.btn-help {
-  padding: 0.75rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-help:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-/* Main Content */
-.main-content {
-  flex: 1;
-  display: flex;
-  gap: 2rem;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.sidebar-section {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 1.5rem;
-  box-shadow: var(--shadow-md);
-}
-
-.section-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 1rem;
-}
-
-/* Mode Selector */
-.mode-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.mode-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.mode-btn:hover {
-  background: var(--bg-secondary);
-  border-color: var(--primary);
-  color: var(--text-primary);
-}
-
-.mode-btn.active {
-  background: var(--gradient-primary);
-  border-color: var(--primary);
-  color: white;
-  box-shadow: var(--shadow-md);
-}
-
-/* Score Dashboard */
-.score-dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.score-metric {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.metric-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.metric-value {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.metric-bar {
-  height: 6px;
-  background: var(--bg-tertiary);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.metric-fill {
-  height: 100%;
-  background: var(--gradient-primary);
-  border-radius: 3px;
-  transition: width 0.5s ease;
-}
-
-/* Documents Panel */
-.documents-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.documents-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.btn-upload {
-  padding: 0.5rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-upload:hover {
-  background: var(--primary);
-  color: white;
-}
-
-.documents-list {
-  list-style: none;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.documents-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-md);
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.documents-list .file-name {
-  flex: 1;
-  color: var(--text-primary);
-}
-
-.documents-list .delete-btn {
-  padding: 0.25rem 0.5rem;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-}
-
-.documents-list .delete-btn:hover {
-  background: var(--danger);
-  color: white;
-}
-
-.empty-state {
-  text-align: center;
-  color: var(--text-muted);
-  font-style: italic;
-  padding: 2rem 1rem;
-}
-
-/* Analytics Buttons */
-.analytics-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.btn-analytics {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.btn-analytics:hover {
-  background: var(--bg-secondary);
-  border-color: var(--primary);
-  color: var(--text-primary);
-}
-
-/* Chat Container */
-.chat-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-}
-
-.messages-container {
-  flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Welcome Message */
-.welcome-message {
-  text-align: center;
-  padding: 3rem 2rem;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-light);
-}
-
-.welcome-icon {
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
-  opacity: 0.8;
-}
-
-.welcome-message h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.welcome-message p {
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.welcome-tips {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.tip {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-.tip i {
-  color: var(--primary);
-  width: 16px;
-}
-
-/* Messages */
-.message {
-  display: flex;
-  flex-direction: column;
-  max-width: 80%;
-  animation: messageSlide 0.3s ease-out;
-}
-
-.message.user {
-  align-self: flex-end;
-}
-
-.message.assistant {
-  align-self: flex-start;
-}
-
-.message-bubble {
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius-xl);
-  position: relative;
-  box-shadow: var(--shadow-md);
-}
-
-.message.user .message-bubble {
-  background: var(--gradient-primary);
-  color: white;
-  border-bottom-right-radius: var(--radius-sm);
-}
-
-.message.assistant .message-bubble {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-light);
-  border-bottom-left-radius: var(--radius-sm);
-}
-
-.message-meta {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.message-content {
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.message-references {
-  font-size: 0.75rem;
-  color: var(--primary);
-  margin-top: 0.5rem;
-  font-style: italic;
-}
-
-@keyframes messageSlide {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Typing Indicator */
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 2rem;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.typing-dots {
-  display: flex;
-  gap: 4px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  background: var(--text-muted);
-  border-radius: 50%;
-  animation: typingBounce 1.4s infinite ease-in-out;
-}
-
-.dot:nth-child(1) { animation-delay: -0.32s; }
-.dot:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes typingBounce {
-  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
-}
-
-/* Input Container */
-.input-container {
-  padding: 1.5rem 2rem;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
-}
-
-.input-wrapper {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-xl);
-  padding: 1rem;
-  transition: all 0.2s ease;
-}
-
-.input-wrapper:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.btn-record {
-  padding: 0.75rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.btn-record:hover, .btn-record.recording {
-  background: var(--danger);
-  color: white;
-  border-color: var(--danger);
-}
-
-.btn-record.recording {
-  animation: pulse 2s infinite;
-}
-
-.text-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  resize: none;
-  max-height: 120px;
-  min-height: 24px;
-  line-height: 1.5;
-}
-
-.text-input:focus {
-  outline: none;
-}
-
-.text-input::placeholder {
-  color: var(--text-muted);
-}
-
-.btn-send {
-  padding: 0.75rem;
-  background: var(--primary);
-  border: none;
-  border-radius: var(--radius-lg);
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.btn-send:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
-.input-hint {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 0.5rem;
-}
-
-/* Modals */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal.hidden {
-  display: none;
-}
-
-.modal-content {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-content.help {
-  max-width: 600px;
-}
-
-.help-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2rem 2rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.help-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.btn-close {
-  padding: 0.5rem;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all 0.2s ease;
-}
-
-.btn-close:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.help-content {
-  padding: 2rem;
-}
-
-.help-section {
-  margin-bottom: 2rem;
-}
-
-.help-section h3 {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.125rem;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
-}
-
-.help-section h3 i {
-  color: var(--primary);
-  width: 20px;
-}
-
-.help-section p {
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-/* Debate Status */
-.debate-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.debate-round,
-.debate-turn,
-.debate-timer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-}
-
-.debate-label {
-  color: var(--text-secondary);
-}
-
-.debate-value {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.debate-progress {
-  height: 8px;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--gradient-primary);
-  border-radius: 4px;
-  transition: width 1s linear;
-}
-
-/* Animations */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-/* Utility Classes */
-.hidden {
-  display: none !important;
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .main-content {
-    flex-direction: column;
-    padding: 1rem;
-  }
-  
-  .sidebar {
-    width: 100%;
-    max-width: none;
-  }
-  
-  .navbar {
-    padding: 1rem;
-  }
-  
-  .nav-tagline {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .messages-container {
-    padding: 1rem;
-  }
-  
-  .input-container {
-    padding: 1rem;
-  }
-  
-  .message {
-    max-width: 90%;
-  }
-  
-  .welcome-message {
-    padding: 2rem 1rem;
-  }
-  
-  .welcome-tips {
-    gap: 0.75rem;
-  }
-  
-  .tip {
-    padding: 0.75rem;
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .navbar {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-  }
-  
-  .nav-controls {
-    justify-content: space-between;
-  }
-  
-  .main-content {
-    padding: 0.5rem;
-    gap: 1rem;
-  }
-  
-  .sidebar-section {
-    padding: 1rem;
-  }
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mootie – AI Moot Court Coach</title>
+  <meta name="description" content="Practice oral arguments with realtime AI coaching, scoring and feedback." />
+  <link rel="stylesheet" href="./style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div id="app" class="container">
+    <!-- Navigation Header -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo">
+          <i class="fas fa-balance-scale"></i>
+          <span>Mootie</span>
+        </div>
+        <div class="nav-tagline">AI Moot Court Coach</div>
+      </div>
+      
+      <div class="nav-controls">
+        <div class="session-info" id="sessionInfo">
+          <i class="fas fa-user-graduate"></i>
+          <span>Coach Mode</span>
+        </div>
+        <button id="debateToggle" class="btn-debate">
+          <i class="fas fa-gavel"></i>
+          <span>Start Debate</span>
+        </button>
+        <button id="helpButton" class="btn-help" title="Help">
+          <i class="fas fa-question"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <!-- Mode Selector -->
+        <div class="sidebar-section">
+          <h3 class="section-title">Role Mode</h3>
+          <div class="mode-selector">
+            <button class="mode-btn active" data-mode="coach" id="modeCoach">
+              <i class="fas fa-user-graduate"></i>
+              <span>Coach</span>
+            </button>
+            <button class="mode-btn" data-mode="judge" id="modeJudge">
+              <i class="fas fa-gavel"></i>
+              <span>Judge</span>
+            </button>
+            <button class="mode-btn" data-mode="opposition" id="modeOpposition">
+              <i class="fas fa-people-arrows"></i>
+              <span>Opposition</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Score Dashboard -->
+        <div class="sidebar-section">
+          <h3 class="section-title">Performance Metrics</h3>
+          <div class="score-dashboard">
+            <div class="score-metric" id="scoreClarity">
+              <div class="metric-header">
+                <span class="metric-label">Clarity</span>
+                <span class="metric-value">0.0</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="score-metric" id="scoreStructure">
+              <div class="metric-header">
+                <span class="metric-label">Structure</span>
+                <span class="metric-value">0.0</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="score-metric" id="scoreAuthority">
+              <div class="metric-header">
+                <span class="metric-label">Authority</span>
+                <span class="metric-value">0.0</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="score-metric" id="scoreResponsiveness">
+              <div class="metric-header">
+                <span class="metric-label">Responsiveness</span>
+                <span class="metric-value">0.0</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="score-metric" id="scorePersuasiveness">
+              <div class="metric-header">
+                <span class="metric-label">Persuasiveness</span>
+                <span class="metric-value">0.0</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-fill" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Debate Status -->
+        <div id="debateStatus" class="sidebar-section hidden">
+          <h3 class="section-title">Debate Session</h3>
+          <div class="debate-info">
+            <div class="debate-round">
+              <span class="debate-label">Round:</span>
+              <span id="roundLabel" class="debate-value">Opening</span>
+            </div>
+            <div class="debate-turn">
+              <span class="debate-label">Turn:</span>
+              <span id="turnLabel" class="debate-value">Your Turn</span>
+            </div>
+            <div class="debate-timer">
+              <span class="debate-label">Time:</span>
+              <span id="timerLabel" class="debate-value">02:00</span>
+            </div>
+          </div>
+          <div class="debate-progress">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+        </div>
+
+        <!-- Document Management -->
+        <div class="sidebar-section">
+          <h3 class="section-title">Case Documents</h3>
+          <div class="documents-panel">
+            <div class="documents-header">
+              <span>Uploaded Sources</span>
+              <button id="uploadBtn" class="btn-upload" title="Upload Document">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+            <ul id="sourceList" class="documents-list">
+              <li class="empty-state">No documents uploaded</li>
+            </ul>
+            <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.md" multiple hidden>
+          </div>
+        </div>
+
+        <!-- Analytics -->
+        <div class="sidebar-section">
+          <h3 class="section-title">Session Analytics</h3>
+          <div class="analytics-panel">
+            <button id="coachFeedbackBtn" class="btn-analytics">
+              <i class="fas fa-chart-line"></i>
+              Get Coach Feedback
+            </button>
+            <button id="exportTranscript" class="btn-analytics">
+              <i class="fas fa-download"></i>
+              Export Transcript
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Chat Area -->
+      <section class="chat-container">
+        <div id="messages" class="messages-container">
+          <div class="welcome-message">
+            <div class="welcome-icon">
+              <i class="fas fa-balance-scale"></i>
+            </div>
+            <h2>Welcome to Mootie</h2>
+            <p>Your AI Moot Court Coach is ready to help you practice arguments and improve your legal reasoning skills.</p>
+            <div class="welcome-tips">
+              <div class="tip">
+                <i class="fas fa-microphone"></i>
+                <span>Press spacebar or click mic to record</span>
+              </div>
+              <div class="tip">
+                <i class="fas fa-switch"></i>
+                <span>Switch between Coach, Judge, and Opposition modes</span>
+              </div>
+              <div class="tip">
+                <i class="fas fa-upload"></i>
+                <span>Upload case documents for reference</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="typingIndicator" class="typing-indicator hidden">
+          <div class="typing-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <span>Mootie is thinking...</span>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+          <div class="input-wrapper">
+            <button id="recordBtn" class="btn-record" title="Hold to record (Spacebar)">
+              <i class="fas fa-microphone"></i>
+            </button>
+            <textarea 
+              id="textInput" 
+              class="text-input" 
+              placeholder="Type your argument or question..." 
+              rows="1"
+            ></textarea>
+            <button id="sendBtn" class="btn-send">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          <div class="input-hint">
+            <span>Press Enter to send • Shift+Enter for new line</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpOverlay" class="modal hidden">
+    <div class="modal-content help">
+      <div class="help-header">
+        <h2>Mootie Guide</h2>
+        <button id="closeHelp" class="btn-close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="help-content">
+        <div class="help-section">
+          <h3><i class="fas fa-microphone"></i> Voice Input</h3>
+          <p>Press the microphone button or <kbd>Spacebar</kbd> to start recording your arguments.</p>
+        </div>
+        <div class="help-section">
+          <h3><i class="fas fa-switch"></i> Role Modes</h3>
+          <p>Switch between Coach, Judge, and Opposition for different perspectives and feedback styles.</p>
+        </div>
+        <div class="help-section">
+          <h3><i class="fas fa-chart-line"></i> Scoring</h3>
+          <p>Track your performance across clarity, structure, authority, responsiveness, and persuasiveness.</p>
+        </div>
+        <div class="help-section">
+          <h3><i class="fas fa-file-upload"></i> Documents</h3>
+          <p>Upload legal documents and case files for Mootie to reference during your practice sessions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add this simple JavaScript to make basic interactions work -->
+  <script>
+    // Basic functionality until we integrate the full client.js
+    class SimpleMootieApp {
+      constructor() {
+        this.currentMode = 'coach';
+        this.isRecording = false;
+        this.initializeApp();
+      }
+
+      initializeApp() {
+        this.bindEvents();
+        this.updateModeDisplay();
+      }
+
+      bindEvents() {
+        // Mode switching
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            this.setMode(e.currentTarget.dataset.mode);
+          });
+        });
+
+        // Recording button
+        const recordBtn = document.getElementById('recordBtn');
+        recordBtn.addEventListener('mousedown', () => this.startRecording());
+        recordBtn.addEventListener('mouseup', () => this.stopRecording());
+        recordBtn.addEventListener('mouseleave', () => this.stopRecording());
+
+        // Send button
+        const sendBtn = document.getElementById('sendBtn');
+        const textInput = document.getElementById('textInput');
+        
+        sendBtn.addEventListener('click', () => this.sendMessage());
+        textInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.sendMessage();
+          }
+        });
+
+        // File upload
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+
+        // Debate toggle
+        const debateToggle = document.getElementById('debateToggle');
+        debateToggle.addEventListener('click', () => this.toggleDebateMode());
+
+        // Help
+        document.getElementById('helpButton').addEventListener('click', () => this.showHelp());
+        document.getElementById('closeHelp').addEventListener('click', () => this.hideHelp());
+
+        // Analytics buttons
+        document.getElementById('coachFeedbackBtn').addEventListener('click', () => this.getCoachFeedback());
+        document.getElementById('exportTranscript').addEventListener('click', () => this.exportTranscript());
+      }
+
+      setMode(mode) {
+        this.currentMode = mode;
+        
+        // Update UI
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        // Update session info
+        const sessionInfo = document.getElementById('sessionInfo');
+        const icons = {
+          coach: 'fa-user-graduate',
+          judge: 'fa-gavel',
+          opposition: 'fa-people-arrows'
+        };
+        const labels = {
+          coach: 'Coach Mode',
+          judge: 'Judge Mode',
+          opposition: 'Opposition Mode'
+        };
+
+        sessionInfo.innerHTML = `
+          <i class="fas ${icons[mode]}"></i>
+          <span>${labels[mode]}</span>
+        `;
+
+        this.addMessage('assistant', `Switched to ${labels[mode]}. Ready for your arguments.`);
+      }
+
+      startRecording() {
+        if (this.isRecording) return;
+        this.isRecording = true;
+        document.getElementById('recordBtn').classList.add('recording');
+        this.addMessage('assistant', 'Recording started... Speak now.');
+      }
+
+      stopRecording() {
+        if (!this.isRecording) return;
+        this.isRecording = false;
+        document.getElementById('recordBtn').classList.remove('recording');
+        // Simulate transcription
+        setTimeout(() => {
+          const simulatedText = "This is a simulated transcription. In the full version, this would be your actual speech.";
+          document.getElementById('textInput').value = simulatedText;
+        }, 1000);
+      }
+
+      sendMessage() {
+        const textInput = document.getElementById('textInput');
+        const message = textInput.value.trim();
+        
+        if (!message) return;
+
+        // Add user message
+        this.addMessage('user', message);
+        textInput.value = '';
+
+        // Show typing indicator
+        this.showTypingIndicator();
+
+        // Simulate AI response
+        setTimeout(() => {
+          this.hideTypingIndicator();
+          const responses = {
+            coach: "That's a good start. Consider structuring your argument with clear points: first, establish the legal standard; second, apply the facts; third, address counterarguments.",
+            judge: "Counsel, I'm not convinced by that argument. Where's your supporting precedent? The standard requires more than mere assertion.",
+            opposition: "I must object to that characterization. The precedent you're relying on actually supports our position when you consider the full context of the decision."
+          };
+          
+          this.addMessage('assistant', responses[this.currentMode]);
+          this.updateScores();
+        }, 2000);
+      }
+
+      addMessage(role, content) {
+        const messagesContainer = document.getElementById('messages');
+        
+        // Remove welcome message if it's the first real message
+        const welcomeMessage = messagesContainer.querySelector('.welcome-message');
+        if (welcomeMessage && role === 'user') {
+          welcomeMessage.remove();
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
+        
+        const timestamp = new Date().toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+
+        messageDiv.innerHTML = `
+          <div class="message-meta">
+            ${role === 'user' ? 'You' : 'Mootie'} • ${timestamp}
+          </div>
+          <div class="message-bubble">
+            <div class="message-content">${content}</div>
+          </div>
+        `;
+
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      showTypingIndicator() {
+        document.getElementById('typingIndicator').classList.remove('hidden');
+      }
+
+      hideTypingIndicator() {
+        document.getElementById('typingIndicator').classList.add('hidden');
+      }
+
+      updateScores() {
+        // Simulate score updates
+        const metrics = ['Clarity', 'Structure', 'Authority', 'Responsiveness', 'Persuasiveness'];
+        
+        metrics.forEach(metric => {
+          const score = (Math.random() * 3 + 7).toFixed(1); // Random scores between 7-10
+          const element = document.getElementById(`score${metric}`);
+          
+          if (element) {
+            const valueElement = element.querySelector('.metric-value');
+            const fillElement = element.querySelector('.metric-fill');
+            
+            valueElement.textContent = score;
+            fillElement.style.width = `${score * 10}%`;
+          }
+        });
+      }
+
+      handleFileUpload(event) {
+        const files = Array.from(event.target.files);
+        if (files.length > 0) {
+          this.addMessage('assistant', `Uploaded ${files.length} file(s). These will be available for reference in our discussions.`);
+        }
+        event.target.value = '';
+      }
+
+      toggleDebateMode() {
+        const debateToggle = document.getElementById('debateToggle');
+        const debateStatus = document.getElementById('debateStatus');
+        
+        if (debateStatus.classList.contains('hidden')) {
+          debateToggle.innerHTML = '<i class="fas fa-stop"></i><span>End Debate</span>';
+          debateStatus.classList.remove('hidden');
+          this.addMessage('assistant', 'Debate session started! You have 2 minutes per turn.');
+          this.startDebateTimer();
+        } else {
+          debateToggle.innerHTML = '<i class="fas fa-gavel"></i><span>Start Debate</span>';
+          debateStatus.classList.add('hidden');
+          this.addMessage('assistant', 'Debate session ended.');
+          this.stopDebateTimer();
+        }
+      }
+
+      startDebateTimer() {
+        let timeRemaining = 120;
+        this.updateTimerDisplay(timeRemaining);
+        
+        this.debateTimer = setInterval(() => {
+          timeRemaining--;
+          this.updateTimerDisplay(timeRemaining);
+          
+          if (timeRemaining <= 0) {
+            this.stopDebateTimer();
+            this.addMessage('assistant', "Time's up! Switching turns...");
+          }
+        }, 1000);
+      }
+
+      stopDebateTimer() {
+        if (this.debateTimer) {
+          clearInterval(this.debateTimer);
+          this.debateTimer = null;
+        }
+      }
+
+      updateTimerDisplay(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        document.getElementById('timerLabel').textContent = 
+          `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        
+        // Update progress bar
+        const progress = (120 - seconds) / 120 * 100;
+        document.getElementById('progressFill').style.width = `${progress}%`;
+      }
+
+      getCoachFeedback() {
+        this.addMessage('assistant', "Based on your performance: Your argument structure is strong, but consider citing more specific precedents. Work on transitioning smoothly between points and anticipating counterarguments more effectively.");
+      }
+
+      exportTranscript() {
+        this.addMessage('assistant', "Transcript export functionality would be implemented here in the full version.");
+      }
+
+      showHelp() {
+        document.getElementById('helpOverlay').classList.remove('hidden');
+      }
+
+      hideHelp() {
+        document.getElementById('helpOverlay').classList.add('hidden');
+      }
+    }
+
+    // Initialize the app when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      window.app = new SimpleMootieApp();
+    });
+  </script>
+</body>
+</html>
