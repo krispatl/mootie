@@ -448,23 +448,23 @@ async function deleteFile(fileId) {
   console.log('[deleteFile]', fileId);
   const start = performance.now();
 
-  const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`);
-  const body = await res.json();
+  try {
+    const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, {
+      method: 'DELETE', // 🛠 FIXED: Explicitly use DELETE method
+    });
 
-  console.log('🧩 Full response body:', body);
+    const body = await res.json();
+    console.log('🧩 Full response body:', body);
 
-  if (body.success) {
-    console.log('✅ File deleted successfully.');
-    
-    // 🔁 NEW: Refresh the sources list
-    if (typeof loadSources === 'function') {
-      console.log('🔁 Reloading sources after delete...');
-      await loadSources();
+    if (body.success) {
+      console.log('✅ File deleted successfully.');
+      // 🔁 Refresh list
+      if (typeof loadSources === 'function') await loadSources();
     } else {
-      console.warn('⚠️ No loadSources() function available');
+      console.warn('❌ Delete failed:', body.error);
     }
-  } else {
-    console.warn('❌ Delete failed:', body.error || 'Unknown error');
+  } catch (e) {
+    console.error('🚨 deleteFile error:', e);
   }
 
   console.log('⏱️ Duration:', (performance.now() - start).toFixed(1), 'ms');
