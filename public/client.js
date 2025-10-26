@@ -398,6 +398,28 @@ async function deleteFile(fileId) {
   try {
     await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, { method: 'DELETE' });
     refreshVectorList();
+  console.log("[deleteFile] fileId:", fileId);
+  const start = performance.now();
+
+  const response = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`);
+  const result = await response.json();
+  console.log("🧩 Full response body:", result);
+
+  if (result.success) {
+    const fileElement = document.querySelector(`[data-file-id="${fileId}"]`);
+    if (fileElement) {
+      fileElement.remove();
+      console.log(`🧹 Removed element from DOM: ${fileId}`);
+    } else {
+      console.warn("⚠️ No DOM element found for fileId:", fileId);
+    }
+  } else {
+    console.error("❌ Delete failed:", result.error || "Unknown error");
+  }
+
+  const duration = (performance.now() - start).toFixed(1);
+  console.log("⏱️ Duration:", duration + " ms");
+
   } catch (e) {
     console.error('delete file error:', e);
   }
