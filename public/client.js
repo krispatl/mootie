@@ -1,518 +1,717 @@
-// client.js - Modern Enhanced Version
-import { initSpeechRecognition } from './speech-recognition.js';
 
-class MootieApp {
-  constructor() {
-    this.currentMode = 'coach';
-    this.isRecording = false;
-    this.sources = [];
-    this.isDebateMode = false;
-    this.debateTimer = null;
-    this.timeRemaining = 120; // 2 minutes
-    
-    this.initializeApp();
-    this.bindEvents();
-    this.loadSources();
-    this.showOnboarding();
+
+// client.js
+// Mootie front-end: modes, chat, voice, uploads, scoring, debate mode,
+// transcripts, onboarding/help — with robust vector-store delete UI.
+
+console.log("✅ client.js loaded, v1.1.1");
+
+// ====================== Global State ======================
+const state = {
+  mode: 'coach',
+  scores: {
+    clarity: [],
+    structure: [],
+    authority: [],
+    responsiveness: [],
+    persuasiveness: []
+  },
+  transcript: [],
+  mediaRecorder: null,
+  audioChunks: [],
+  recording: false,
+  // Debate
+  debate: false,
+  debateTimer: null,
+  debateRemaining: 0,
+  debateRounds: [
+    { label: 'Opening', duration: 120 },
+    { label: 'Rebuttal', duration: 120 },
+    { label: 'Closing', duration: 120 }
+  ],
+  currentRoundIndex: 0,
+  currentTurn: 0, // 0 = user, 1 = AI
+  speakerFirstUser: true,
+  debateTurnCount: 0,
+  enableCoachFeedback: false
+};
+
+// Used to avoid flicker when API list is slightly behind a DELETE
+const recentlyDeleted = new Set();
+
+// ====================== DOM Refs ======================
+const messagesDiv = document.getElementById('messages');
+const textInput = document.getElementById('textInput');
+const sendBtn = document.getElementById('sendBtn');
+const recordBtn = document.getElementById('recordBtn');
+const typingIndicator = document.getElementById('typingIndicator');
+
+const modeCoach = document.getElementById('modeCoach');
+const modeJudge = document.getElementById('modeJudge');
+const modeOpposition = document.getElementById('modeOpposition');
+const sessionInfo = document.getElementById('sessionInfo');
+
+// Sources / uploads
+const sourceList = document.getElementById('sourceList');
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+
+// Transcript / export / notes
+const exportBtn = document.getElementById('exportTranscript');
+const transcriptList = document.getElementById('transcriptList');
+const coachFeedbackBtn = document.getElementById('coachFeedbackBtn');
+
+// Debate status / controls
+const debateToggle = document.getElementById('debateToggle');
+const debateStatus = document.getElementById('debateStatus');
+const roundLabel = document.getElementById('roundLabel');
+const turnLabel = document.getElementById('turnLabel');
+const progressFill = document.getElementById('progressFill');
+const nextRoundBtn = document.getElementById('nextRoundBtn');
+
+// Debate setup modal (optional)
+const debateSetupModal = document.getElementById('debateSetupModal');
+const debateSetupForm = document.getElementById('debateSetupForm');
+const debateOpening = document.getElementById('debateOpening');
+const debateRebuttal = document.getElementById('debateRebuttal');
+const debateClosing = document.getElementById('debateClosing');
+const debateStarter = document.getElementById('debateStarter');
+const debateCancel = document.getElementById('debateCancel');
+const enableCoachFeedback = document.getElementById('enableCoachFeedback');
+
+// Onboarding/help (optional)
+const onboardingModal = document.getElementById('onboardingModal');
+const onboardingTitle = document.getElementById('onboardingTitle');
+const onboardingText = document.getElementById('onboardingText');
+const onboardingNext = document.getElementById('onboardingNext');
+const onboardingPrev = document.getElementById('onboardingPrev');
+const helpButton = document.getElementById('helpButton');
+const helpOverlay = document.getElementById('helpOverlay');
+const closeHelp = document.getElementById('closeHelp');
+
+// Scores UI (optional)
+const scoreRows = {
+  clarity: document.getElementById('scoreClarity'),
+  structure: document.getElementById('scoreStructure'),
+  authority: document.getElementById('scoreAuthority'),
+  responsiveness: document.getElementById('scoreResponsiveness'),
+  persuasiveness: document.getElementById('scorePersuasiveness')
+};
+
+// ====================== Utilities ======================
+function beep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.stop(ctx.currentTime + 0.16);
+    setTimeout(() => ctx.close(), 200);
+  } catch (e) { console.error('beep error:', e); }
+}
+
+function showTyping(show) {
+  if (!typingIndicator) return;
+  typingIndicator.classList.toggle('hidden', !show);
+}
+
+function addMessage(role, text, references = []) {
+  if (!messagesDiv) return;
+  const container = document.createElement('div');
+  container.className = `message ${role}`;
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const now = new Date();
+  const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  meta.textContent = `${role === 'user' ? 'You' : 'Mootie'} • ${timeString}`;
+  container.appendChild(meta);
+
+  const body = document.createElement('div');
+  body.className = 'text';
+  body.textContent = text;
+  container.appendChild(body);
+
+  if (references && references.length) {
+    const refDiv = document.createElement('div');
+    refDiv.className = 'references';
+    refDiv.textContent = 'Referenced: ' + references.join(', ');
+    container.appendChild(refDiv);
   }
 
-  initializeApp() {
-    // Initialize speech recognition
-    this.speechRecognition = initSpeechRecognition(
-      (text) => this.onTranscription(text),
-      () => this.onRecordingStart(),
-      () => this.onRecordingEnd()
-    );
+  messagesDiv.appendChild(container);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    // Initialize UI components
-    this.updateModeDisplay();
-    this.setupTextInput();
-  }
+  // Save transcript
+  state.transcript.push({ role, text, time: now.toISOString(), references });
+  updateTranscriptUI();
+}
 
-  bindEvents() {
-    // Mode switching
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.setMode(e.currentTarget.dataset.mode);
-      });
-    });
+function updateTranscriptUI() {
+  if (!transcriptList) return;
+  transcriptList.innerHTML = '';
+  state.transcript.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'transcript-entry';
+    const timeStr = new Date(entry.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    div.textContent = `${entry.role === 'user' ? 'You' : 'Mootie'} [${timeStr}]: ${entry.text}`;
+    transcriptList.appendChild(div);
+  });
+}
 
-    // Recording
-    const recordBtn = document.getElementById('recordBtn');
-    recordBtn.addEventListener('mousedown', () => this.startRecording());
-    recordBtn.addEventListener('mouseup', () => this.stopRecording());
-    recordBtn.addEventListener('mouseleave', () => this.stopRecording());
+function updateScoreUI() {
+  Object.keys(scoreRows || {}).forEach(key => {
+    const row = scoreRows[key];
+    if (!row) return;
+    const values = state.scores[key] || [];
+    const avg = values.length ? values.reduce((a,b) => a + b, 0) / values.length : 0;
+    const bar = row.querySelector('.fill');
+    const valueSpan = row.querySelector('.value');
+    if (bar) bar.style.width = `${Math.min(100, avg * 10)}%`;
+    if (valueSpan) valueSpan.textContent = avg.toFixed(1);
+  });
+}
 
-    // Text input
-    const textInput = document.getElementById('textInput');
-    const sendBtn = document.getElementById('sendBtn');
-    
-    textInput.addEventListener('keydown', (e) => {
+function setMode(mode) {
+  state.mode = mode;
+  try { localStorage.setItem('mootieMode', mode); } catch {}
+  applyMode(mode);
+}
+
+function applyMode(mode) {
+  [modeCoach, modeJudge, modeOpposition].forEach(btn => {
+    if (!btn) return;
+    btn.classList.toggle('active', btn.dataset?.mode === mode || btn.id?.toLowerCase().includes(mode));
+  });
+  // Accent color (optional CSS vars in :root)
+  let color;
+  if (mode === 'judge') color = getComputedStyle(document.documentElement).getPropertyValue('--judge-color') || '#7dd3fc';
+  else if (mode === 'opposition') color = getComputedStyle(document.documentElement).getPropertyValue('--opposition-color') || '#a78bfa';
+  else color = getComputedStyle(document.documentElement).getPropertyValue('--coach-color') || '#7dd3fc';
+  document.documentElement.style.setProperty('--accent', color.trim());
+  if (sessionInfo) sessionInfo.textContent = `Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+}
+
+// Normalize vector-store API variety: {data:{files|vectors}} or flat arrays
+function normalizeFiles(raw) {
+  const arr = (raw?.data?.files || raw?.data?.vectors || raw?.files || raw?.vectors || raw || []);
+  return arr.map(f => {
+    const id = f.id || f.file_id || f.fileId;
+    const name = f.filename || f.name || f.display_name || id || 'Unnamed';
+    return { id, name };
+  }).filter(f => !!f.id);
+}
+
+// ====================== Init ======================
+window.addEventListener('DOMContentLoaded', () => {
+  // Restore mode
+  try {
+    const savedMode = localStorage.getItem('mootieMode');
+    if (savedMode) state.mode = savedMode;
+  } catch {}
+  applyMode(state.mode);
+
+  // Mode toggles
+  if (modeCoach) modeCoach.addEventListener('click', () => setMode('coach'));
+  if (modeJudge) modeJudge.addEventListener('click', () => setMode('judge'));
+  if (modeOpposition) modeOpposition.addEventListener('click', () => setMode('opposition'));
+
+  // Send
+  if (sendBtn) sendBtn.addEventListener('click', handleSend);
+  if (textInput) {
+    textInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        this.sendMessage();
+        handleSend();
       }
     });
+  }
 
-    sendBtn.addEventListener('click', () => this.sendMessage());
+  // Record
+  if (recordBtn) {
+    recordBtn.addEventListener('mousedown', startRecording);
+    recordBtn.addEventListener('mouseup', stopRecording);
+    recordBtn.addEventListener('mouseleave', () => { if (state.recording) stopRecording(); });
+    recordBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); }, { passive: false });
+    recordBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); }, { passive: false });
+  }
 
-    // File upload
-    const uploadBtn = document.getElementById('uploadBtn');
-    const fileInput = document.getElementById('fileInput');
-    
-    uploadBtn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
-
-    // Debate mode
-    const debateToggle = document.getElementById('debateToggle');
-    debateToggle.addEventListener('click', () => this.toggleDebateMode());
-
-    // Analytics
-    document.getElementById('coachFeedbackBtn').addEventListener('click', () => this.getCoachFeedback());
-    document.getElementById('exportTranscript').addEventListener('click', () => this.exportTranscript());
-
-    // Help
-    document.getElementById('helpButton').addEventListener('click', () => this.showHelp());
-    document.getElementById('closeHelp').addEventListener('click', () => this.hideHelp());
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && !e.target.matches('textarea, input')) {
+  // Spacebar PTT
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !e.repeat) {
+      const active = document.activeElement;
+      if (active !== textInput && active !== recordBtn && !state.recording) {
         e.preventDefault();
-        this.toggleRecording();
+        startRecording();
       }
-    });
-  }
-
-  setMode(mode) {
-    this.currentMode = mode;
-    
-    // Update UI
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === mode);
-    });
-
-    // Update session info
-    const sessionInfo = document.getElementById('sessionInfo');
-    const icons = {
-      coach: 'fa-user-graduate',
-      judge: 'fa-gavel',
-      opposition: 'fa-people-arrows'
-    };
-    const labels = {
-      coach: 'Coach Mode',
-      judge: 'Judge Mode',
-      opposition: 'Opposition Mode'
-    };
-
-    sessionInfo.innerHTML = `
-      <i class="fas ${icons[mode]}"></i>
-      <span>${labels[mode]}</span>
-    `;
-
-    this.addSystemMessage(`Switched to ${labels[mode]}. Ready for your arguments.`);
-  }
-
-  async startRecording() {
-    if (this.isRecording) return;
-    
-    try {
-      this.isRecording = true;
-      document.getElementById('recordBtn').classList.add('recording');
-      await this.speechRecognition.start();
-    } catch (error) {
-      console.error('Recording error:', error);
-      this.addSystemMessage('Error starting recording. Please check microphone permissions.');
-      this.stopRecording();
     }
-  }
-
-  async stopRecording() {
-    if (!this.isRecording) return;
-    
-    this.isRecording = false;
-    document.getElementById('recordBtn').classList.remove('recording');
-    await this.speechRecognition.stop();
-  }
-
-  toggleRecording() {
-    if (this.isRecording) {
-      this.stopRecording();
-    } else {
-      this.startRecording();
+  }, { passive: false });
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space' && state.recording) {
+      const active = document.activeElement;
+      if (active !== textInput && active !== recordBtn) {
+        e.preventDefault();
+        stopRecording();
+      }
     }
+  }, { passive: false });
+
+  // Uploads
+  if (uploadBtn && fileInput) {
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleUpload);
   }
 
-  onTranscription(text) {
-    if (text.trim()) {
-      document.getElementById('textInput').value = text;
-      this.sendMessage();
-    }
-  }
+  // Export & coach notes
+  if (exportBtn) exportBtn.addEventListener('click', exportTranscript);
+  if (coachFeedbackBtn) coachFeedbackBtn.addEventListener('click', getCoachFeedback);
 
-  onRecordingStart() {
-    this.addSystemMessage('Recording started... Speak now.');
-  }
-
-  onRecordingEnd() {
-    // Recording end handled by transcription
-  }
-
-  setupTextInput() {
-    const textInput = document.getElementById('textInput');
-    
-    textInput.addEventListener('input', () => {
-      // Auto-resize
-      textInput.style.height = 'auto';
-      textInput.style.height = Math.min(textInput.scrollHeight, 120) + 'px';
-    });
-  }
-
-  async sendMessage() {
-    const textInput = document.getElementById('textInput');
-    const message = textInput.value.trim();
-    
-    if (!message) return;
-
-    // Add user message
-    this.addMessage('user', message);
-    textInput.value = '';
-    textInput.style.height = 'auto';
-
-    // Show typing indicator
-    this.showTypingIndicator();
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          mode: this.currentMode,
-          sources: this.sources.map(s => s.id)
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        this.addMessage('assistant', data.response, data.references);
-        this.updateScores(data.scores);
+  // Debate toggle
+  if (debateToggle) {
+    debateToggle.addEventListener('click', (e) => {
+      if (!state.debate && debateSetupModal) {
+        e.preventDefault();
+        v4OpenDebateSetup();
       } else {
-        throw new Error(data.error || 'Failed to get response');
+        toggleDebateMode();
       }
-    } catch (error) {
-      console.error('Chat error:', error);
-      this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
-    } finally {
-      this.hideTypingIndicator();
-    }
-  }
-
-  addMessage(role, content, references = null) {
-    const messagesContainer = document.getElementById('messages');
-    
-    // Remove welcome message if it's the first real message
-    const welcomeMessage = messagesContainer.querySelector('.welcome-message');
-    if (welcomeMessage && role === 'user') {
-      welcomeMessage.remove();
-    }
-
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}`;
-    
-    const timestamp = new Date().toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
     });
-
-    let referencesHtml = '';
-    if (references && references.length > 0) {
-      referencesHtml = `
-        <div class="message-references">
-          Sources: ${references.join(', ')}
-        </div>
-      `;
-    }
-
-    messageDiv.innerHTML = `
-      <div class="message-meta">
-        ${role === 'user' ? 'You' : 'Mootie'} • ${timestamp}
-      </div>
-      <div class="message-bubble">
-        <div class="message-content">${this.formatMessage(content)}</div>
-        ${referencesHtml}
-      </div>
-    `;
-
-    messagesContainer.appendChild(messageDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
-  addSystemMessage(content) {
-    this.addMessage('assistant', content);
-  }
+  // Debate setup modal hooks
+  if (debateCancel) debateCancel.addEventListener('click', v4CloseDebateSetup);
+  if (debateSetupForm) debateSetupForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    v4StartDebateFromConfig();
+  });
 
-  formatMessage(content) {
-    // Convert markdown-like formatting to HTML
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>');
-  }
+  // Prime data
+  refreshVectorList();
+  updateScoreUI();
 
-  showTypingIndicator() {
-    document.getElementById('typingIndicator').classList.remove('hidden');
-    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-  }
-
-  hideTypingIndicator() {
-    document.getElementById('typingIndicator').classList.add('hidden');
-  }
-
-  async handleFileUpload(event) {
-    const files = Array.from(event.target.files);
-    
-    for (const file of files) {
-      await this.uploadFile(file);
-    }
-    
-    // Reset file input
-    event.target.value = '';
-  }
-
-  async uploadFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
+  // Onboarding on first visit
+  window.addEventListener('load', () => {
     try {
-      this.addSystemMessage(`Uploading ${file.name}...`);
-      
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const seen = localStorage.getItem('mootieOnboarded');
+      if (!seen) setTimeout(startOnboarding, 600);
+    } catch { setTimeout(startOnboarding, 600); }
+  });
+});
 
-      const data = await response.json();
-
-      if (data.success) {
-        this.sources.push({
-          id: data.fileId,
-          name: file.name,
-          type: file.type
-        });
-        this.updateSourceList();
-        this.addSystemMessage(`Successfully uploaded ${file.name}`);
-      } else {
-        throw new Error(data.error || 'Upload failed');
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      this.addSystemMessage(`Failed to upload ${file.name}: ${error.message}`);
-    }
-  }
-
-  async deleteFile(fileId) {
-    try {
-      const response = await fetch(`/api/delete-file?fileId=${fileId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        this.sources = this.sources.filter(s => s.id !== fileId);
-        this.updateSourceList();
-        this.addSystemMessage('File deleted successfully');
-      } else {
-        throw new Error(data.error || 'Delete failed');
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      this.addSystemMessage(`Failed to delete file: ${error.message}`);
-    }
-  }
-
-  updateSourceList() {
-    const sourceList = document.getElementById('sourceList');
-    
-    if (this.sources.length === 0) {
-      sourceList.innerHTML = '<li class="empty-state">No documents uploaded</li>';
+// ====================== Chat / Send ======================
+async function handleSend() {
+  const text = (textInput?.value || '').trim();
+  if (!text) return;
+  if (textInput) textInput.value = '';
+  addMessage('user', text);
+  showTyping(true);
+  try {
+    const res = await fetch('/api/send-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, message: text, mode: state.mode })
+    });
+    const result = await res.json();
+    showTyping(false);
+    if (!result || result.success === false) {
+      addMessage('assistant', `Error: ${result?.error || 'An error occurred'}`);
       return;
     }
-
-    sourceList.innerHTML = this.sources.map(source => `
-      <li>
-        <span class="file-name" title="${source.name}">${this.truncateFileName(source.name)}</span>
-        <button class="delete-btn" onclick="app.deleteFile('${source.id}')" title="Delete file">
-          <i class="fas fa-trash"></i>
-        </button>
-      </li>
-    `).join('');
-  }
-
-  truncateFileName(name, maxLength = 25) {
-    return name.length > maxLength ? name.substring(0, maxLength - 3) + '...' : name;
-  }
-
-  async loadSources() {
-    try {
-      const response = await fetch('/api/list-files');
-      const data = await response.json();
-      
-      if (data.success) {
-        this.sources = data.files || [];
-        this.updateSourceList();
-      }
-    } catch (error) {
-      console.error('Error loading sources:', error);
-    }
-  }
-
-  updateScores(scores) {
-    if (!scores) return;
-
-    const metrics = ['Clarity', 'Structure', 'Authority', 'Responsiveness', 'Persuasiveness'];
-    
-    metrics.forEach(metric => {
-      const score = scores[metric.toLowerCase()] || 0;
-      const element = document.getElementById(`score${metric}`);
-      
-      if (element) {
-        const valueElement = element.querySelector('.metric-value');
-        const fillElement = element.querySelector('.metric-fill');
-        
-        valueElement.textContent = score.toFixed(1);
-        fillElement.style.width = `${score * 10}%`;
-      }
-    });
-  }
-
-  toggleDebateMode() {
-    this.isDebateMode = !this.isDebateMode;
-    const debateToggle = document.getElementById('debateToggle');
-    const debateStatus = document.getElementById('debateStatus');
-    
-    if (this.isDebateMode) {
-      debateToggle.innerHTML = '<i class="fas fa-stop"></i><span>End Debate</span>';
-      debateStatus.classList.remove('hidden');
-      this.startDebateTimer();
-      this.addSystemMessage('Debate session started! You have 2 minutes per turn.');
-    } else {
-      debateToggle.innerHTML = '<i class="fas fa-gavel"></i><span>Start Debate</span>';
-      debateStatus.classList.add('hidden');
-      this.stopDebateTimer();
-      this.addSystemMessage('Debate session ended.');
-    }
-  }
-
-  startDebateTimer() {
-    this.timeRemaining = 120;
-    this.updateTimerDisplay();
-    
-    this.debateTimer = setInterval(() => {
-      this.timeRemaining--;
-      this.updateTimerDisplay();
-      
-      if (this.timeRemaining <= 0) {
-        this.endTurn();
-      }
-    }, 1000);
-  }
-
-  stopDebateTimer() {
-    if (this.debateTimer) {
-      clearInterval(this.debateTimer);
-      this.debateTimer = null;
-    }
-  }
-
-  updateTimerDisplay() {
-    const minutes = Math.floor(this.timeRemaining / 60);
-    const seconds = this.timeRemaining % 60;
-    document.getElementById('timerLabel').textContent = 
-      `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    
-    // Update progress bar
-    const progress = (120 - this.timeRemaining) / 120 * 100;
-    document.getElementById('progressFill').style.width = `${progress}%`;
-  }
-
-  endTurn() {
-    this.stopDebateTimer();
-    this.addSystemMessage('Time\'s up! Switching to opposition...');
-    // Add logic for automatic turn switching
-  }
-
-  async getCoachFeedback() {
-    this.addSystemMessage('Generating comprehensive feedback...');
-    
-    try {
-      const response = await fetch('/api/coach-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        this.addMessage('assistant', data.feedback);
-      } else {
-        throw new Error(data.error || 'Failed to get feedback');
-      }
-    } catch (error) {
-      console.error('Feedback error:', error);
-      this.addMessage('assistant', 'Sorry, I couldn\'t generate feedback at this time.');
-    }
-  }
-
-  exportTranscript() {
-    const messages = Array.from(document.querySelectorAll('.message'))
-      .map(msg => {
-        const role = msg.classList.contains('user') ? 'You' : 'Mootie';
-        const content = msg.querySelector('.message-content').textContent;
-        return `${role}: ${content}`;
-      })
-      .join('\n\n');
-
-    const blob = new Blob([messages], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mootie-transcript-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    this.addSystemMessage('Transcript exported successfully.');
-  }
-
-  showOnboarding() {
-    // Simple onboarding - you can expand this
-    const hasSeenOnboarding = localStorage.getItem('mootie-onboarding-seen');
-    
-    if (!hasSeenOnboarding) {
-      this.addSystemMessage('Welcome to Mootie! I\'m your AI Moot Court Coach. You can switch between Coach, Judge, and Opposition modes, upload case documents, and practice your arguments with real-time feedback.');
-      localStorage.setItem('mootie-onboarding-seen', 'true');
-    }
-  }
-
-  showHelp() {
-    document.getElementById('helpOverlay').classList.remove('hidden');
-  }
-
-  hideHelp() {
-    document.getElementById('helpOverlay').classList.add('hidden');
+    const payload = result.data || result;
+    const reply = payload.assistantResponse || payload.assistant || payload.text || '';
+    const references = payload.references || [];
+    addMessage('assistant', reply, references);
+    if (reply) await scoreMessage(reply);
+    if (payload.assistantAudio) tryPlayAudio(payload.assistantAudio);
+  } catch (e) {
+    console.error('send error:', e);
+    showTyping(false);
+    addMessage('assistant', 'An error occurred while contacting the server.');
   }
 }
 
-// Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  window.app = new MootieApp();
-});
+// ====================== Scoring ======================
+async function scoreMessage(text) {
+  try {
+    const res = await fetch('/api/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const out = await res.json();
+    if (!out || !out.success || !out.data) return;
+    const { clarity, structure, authority, responsiveness, persuasiveness, notes } = out.data;
+    ['clarity','structure','authority','responsiveness','persuasiveness'].forEach(key => {
+      if (typeof out.data[key] === 'number') state.scores[key].push(out.data[key]);
+    });
+    updateScoreUI();
+    if (notes) addMessage('assistant', `Coach Note: ${notes}`);
+  } catch (err) { console.error('score error:', err); }
+}
 
-// Export for use in other modules
-export default MootieApp;
+// ====================== Recording / Transcription ======================
+async function startRecording() {
+  if (state.recording) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(stream);
+    state.mediaRecorder = mediaRecorder;
+    document.body.classList.add('user-speaking');
+    state.audioChunks = [];
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) state.audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      recordBtn?.classList.remove('active', 'pulsing');
+      state.recording = false;
+      beep();
+      const blob = new Blob(state.audioChunks, { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('audio', blob, 'speech.webm');
+      try {
+        const resp = await fetch('/api/transcribe', { method: 'POST', body: formData });
+        const out = await resp.json();
+        if (!out || out.success === false) {
+          addMessage('assistant', out?.error || 'Failed to transcribe audio.');
+          return;
+        }
+        const payload = out.data || out;
+        if (payload && payload.text) {
+          if (textInput) textInput.value = payload.text;
+          handleSend();
+        }
+      } catch (e) {
+        console.error('transcribe error:', e);
+        addMessage('assistant', 'Failed to transcribe audio.');
+      } finally {
+        document.body.classList.remove('user-speaking');
+      }
+    };
+    mediaRecorder.start();
+    state.recording = true;
+    recordBtn?.classList.add('active', 'pulsing');
+    beep();
+  } catch (e) {
+    console.error('recording error:', e);
+    addMessage('assistant', 'Unable to access microphone.');
+  }
+}
+
+function stopRecording() {
+  if (!state.recording || !state.mediaRecorder) return;
+  state.mediaRecorder.stop();
+}
+
+// ====================== Uploads / Sources ======================
+async function handleUpload(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  for (const file of files) {
+    const formData = new FormData();
+    formData.append('document', file, file.name);
+    try {
+      const resp = await fetch('/api/upload-document', { method: 'POST', body: formData });
+      const out = await resp.json().catch(() => ({}));
+      if (out?.success === false) {
+        addMessage('assistant', `Failed to upload ${file.name}: ${out?.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('upload error:', err);
+      addMessage('assistant', `Failed to upload ${file.name}.`);
+    }
+  }
+  if (fileInput) fileInput.value = '';
+  await refreshVectorList();
+}
+
+async function refreshVectorList() {
+  if (!sourceList) return;
+  try {
+    // cache-bust & no-store to avoid stale lists
+    const res = await fetch(`/api/vector-store?t=${Date.now()}`, { cache: 'no-store' });
+    const out = await res.json().catch(() => ({}));
+    let files = normalizeFiles(out);
+
+    // hide items we just deleted locally to avoid one-frame flicker
+    files = files.filter(f => !recentlyDeleted.has(f.id));
+
+    sourceList.innerHTML = '';
+    if (!files.length) {
+      sourceList.innerHTML = '<li class="empty">No sources uploaded</li>';
+      return;
+    }
+    files.forEach(file => {
+      const li = document.createElement('li');
+      li.className = 'source-row';
+      li.setAttribute('data-file-id', file.id); // crucial for UI removal
+      li.innerHTML = `
+        <span class="name">${file.name}</span>
+        <button class="delete-btn" title="Delete" aria-label="Delete ${file.name}" data-file-id="${file.id}">×</button>
+      `;
+      const del = li.querySelector('.delete-btn');
+      del.addEventListener('click', async (e) => {
+        const fid = e.currentTarget.getAttribute('data-file-id');
+        await deleteFile(fid);
+      });
+      sourceList.appendChild(li);
+    });
+  } catch (e) {
+    console.error('vector list error:', e);
+    sourceList.innerHTML = '<li class="empty">Unable to load sources</li>';
+  }
+}
+
+async function deleteFile(fileId) {
+  console.log('[deleteFile]', fileId);
+  const start = performance.now();
+  try {
+    const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    console.log('🧩 Full response body:', data);
+
+    if (!res.ok || !data?.success) {
+      console.error('❌ Delete failed:', data?.error || `HTTP ${res.status}`);
+    } else {
+      console.log('✅ File deleted successfully.');
+      recentlyDeleted.add(fileId);
+
+      // inline removal for snappy UX
+      const row = document.querySelector(`[data-file-id="${fileId}"]`);
+      if (row) {
+        row.remove();
+        console.log(`🧹 Removed element with data-file-id="${fileId}"`);
+      } else {
+        console.warn(`⚠️ No element found for data-file-id="${fileId}"`);
+      }
+      // fresh list from server (source of truth)
+      await refreshVectorList();
+
+      // clear guard later
+      setTimeout(() => recentlyDeleted.delete(fileId), 10000);
+    }
+  } catch (err) {
+    console.error('🔥 Exception during delete:', err);
+  }
+  console.log('⏱️ Duration:', (performance.now() - start).toFixed(1), 'ms');
+}
+
+// ====================== Export & Coach Feedback ======================
+function exportTranscript() {
+  if (!state.transcript.length) return;
+  let content = '# Mootie Debate Transcript\\n\\n';
+  state.transcript.forEach(entry => {
+    const timeStr = new Date(entry.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    content += `[${timeStr}] ${entry.role === 'user' ? 'You' : 'Mootie'}: ${entry.text}\\n`;
+  });
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'mootie_transcript.txt';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 0);
+}
+
+async function getCoachFeedback() {
+  try {
+    const resp = await fetch('/api/ai-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: state.transcript })
+    });
+    const out = await resp.json().catch(() => ({}));
+    if (!out || out.success === false) {
+      addMessage('assistant', out?.error || 'Failed to fetch coach feedback.');
+      return;
+    }
+    const notes = out.data?.notes;
+    if (notes) addMessage('assistant', `Coach Feedback: ${notes}`);
+    else addMessage('assistant', 'No feedback available.');
+  } catch (err) {
+    console.error('coach feedback error:', err);
+    addMessage('assistant', 'Failed to fetch coach feedback.');
+  }
+}
+
+// ====================== Debate Mode ======================
+function toggleDebateMode() {
+  if (state.debate) endDebate();
+  else startDebate();
+}
+
+function v4OpenDebateSetup() {
+  if (!debateSetupModal) { startDebate(); return; }
+  debateSetupModal.classList.remove('hidden');
+}
+function v4CloseDebateSetup() {
+  if (debateSetupModal) debateSetupModal.classList.add('hidden');
+}
+function v4StartDebateFromConfig() {
+  if (!debateSetupModal || !debateOpening || !debateRebuttal || !debateClosing || !debateStarter) {
+    startDebate(); return;
+  }
+  try {
+    const opening = Math.max(15, Math.min(600, parseInt(debateOpening.value || '60', 10)));
+    const rebuttal = Math.max(15, Math.min(600, parseInt(debateRebuttal.value || '45', 10)));
+    const closing = Math.max(15, Math.min(600, parseInt(debateClosing.value || '30', 10)));
+    const starter = (debateStarter.value === 'mootie') ? 'mootie' : 'you';
+    state.debateRounds = [{ label: 'Opening', duration: opening }, { label: 'Rebuttal', duration: rebuttal }, { label: 'Closing', duration: closing }];
+    state.speakerFirstUser = (starter !== 'mootie');
+    state.enableCoachFeedback = !!(enableCoachFeedback && enableCoachFeedback.checked);
+  } catch {}
+  v4CloseDebateSetup();
+  startDebate();
+}
+
+function startDebate() {
+  state.debate = true;
+  try {
+    const userFirst = window.confirm('Would you like to go first?\\nOK = You, Cancel = Mootie');
+    state.speakerFirstUser = userFirst;
+  } catch { state.speakerFirstUser = true; }
+  state.currentRoundIndex = 0;
+  state.debateTurnCount = 0;
+  if (debateToggle) debateToggle.textContent = '⏹️ Stop Debate Mode';
+  if (debateStatus) debateStatus.classList.remove('hidden');
+  startRound();
+}
+
+function startRound() {
+  const round = state.debateRounds[state.currentRoundIndex];
+  if (!round) { endDebate(); return; }
+  const startUser = state.speakerFirstUser ? 0 : 1;
+  state.currentTurn = (state.currentRoundIndex % 2 === 0 ? startUser : 1 - startUser);
+  state.debateRemaining = round.duration;
+  state.debateTurnCount = 0;
+  if (roundLabel) roundLabel.textContent = round.label;
+  if (turnLabel) turnLabel.textContent = state.currentTurn === 0 ? 'Your Turn' : "Mootie's Turn";
+  updateDebateDisplay();
+  if (state.debateTimer) clearInterval(state.debateTimer);
+  state.debateTimer = setInterval(() => {
+    state.debateRemaining--;
+    if (state.debateRemaining <= 0) handleTurnEnd();
+    updateDebateDisplay();
+  }, 1000);
+}
+
+function handleTurnEnd() {
+  const round = state.debateRounds[state.currentRoundIndex];
+  if (!round) { endDebate(); return; }
+  if (state.debateTurnCount === 0) {
+    state.debateTurnCount = 1;
+    state.currentTurn = 1 - state.currentTurn;
+    state.debateRemaining = round.duration;
+    if (turnLabel) turnLabel.textContent = state.currentTurn === 0 ? 'Your Turn' : "Mootie's Turn";
+  } else {
+    nextRound();
+  }
+}
+
+function nextRound() {
+  state.currentRoundIndex++;
+  if (state.currentRoundIndex >= state.debateRounds.length) { endDebate(); return; }
+  startRound();
+}
+
+function endDebate() {
+  state.debate = false;
+  clearInterval(state.debateTimer); state.debateTimer = null;
+  if (debateStatus) debateStatus.classList.add('hidden');
+  if (debateToggle) debateToggle.textContent = '🗣️ Start Debate Mode';
+  if (sessionInfo) sessionInfo.textContent = `Mode: ${state.mode.charAt(0).toUpperCase() + state.mode.slice(1)}`;
+}
+
+function updateDebateDisplay() {
+  if (!state.debate) return;
+  const round = state.debateRounds[state.currentRoundIndex];
+  const total = round ? round.duration : 1;
+  const percent = Math.max(0, Math.min(1, (total - state.debateRemaining) / total)) * 100;
+  if (progressFill) progressFill.style.width = percent + '%';
+  const mins = Math.floor(state.debateRemaining / 60);
+  const secs = state.debateRemaining % 60;
+  const timerString = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  if (sessionInfo) sessionInfo.textContent = `Debate: ${round?.label || ''} – ${timerString}`;
+}
+
+// Audio playback helper
+function tryPlayAudio(base64) {
+  try {
+    if (state.debate && state.currentTurn === 1) v4PauseDebateTimer();
+    const audio = new Audio('data:audio/mp3;base64,' + base64);
+    audio.play().finally(() => {
+      if (state.debate && state.currentTurn === 1) {
+        v4ResumeDebateTimer();
+        handleTurnEnd();
+      }
+    });
+  } catch (e) {
+    console.error('audio playback error:', e);
+    if (state.debate && state.currentTurn === 1) {
+      v4ResumeDebateTimer();
+      handleTurnEnd();
+    }
+  }
+}
+
+function v4PauseDebateTimer() {
+  if (state.debateTimer) { clearInterval(state.debateTimer); state.debateTimer = null; }
+}
+function v4ResumeDebateTimer() {
+  if (!state.debate || state.debateTimer) return;
+  state.debateTimer = setInterval(() => {
+    state.debateRemaining--;
+    if (state.debateRemaining <= 0) handleTurnEnd();
+    updateDebateDisplay();
+  }, 1000);
+}
+
+// ====================== Onboarding / Help ======================
+const onboardingSteps = [
+  { title: 'Welcome to Mootie ⚖️', text: 'Your AI Moot Court Coach helps you practice arguments and improve your reasoning skills.' },
+  { title: 'Modes', text: 'Switch between Coach, Judge, and Opposition modes to train from multiple perspectives.' },
+  { title: 'Voice Input', text: 'Press the mic or hit the spacebar to start recording your arguments.' },
+  { title: 'Scoring', text: 'Watch your clarity, structure, and persuasiveness scores update live after each round.' },
+  { title: 'Coach Feedback', text: 'Click “Coach Feedback” at any time to receive personalized improvement tips.' },
+  { title: 'Start Debating', text: 'You’re ready! Press “Start Debate Mode” and choose who goes first.' }
+];
+let onboardingStep = 0;
+
+function showOnboardingStep(index) {
+  if (!onboardingModal) return;
+  onboardingStep = index;
+  const step = onboardingSteps[index];
+  if (onboardingTitle) onboardingTitle.textContent = step.title;
+  if (onboardingText) onboardingText.textContent = step.text;
+  if (onboardingPrev) onboardingPrev.style.display = index === 0 ? 'none' : 'inline-block';
+  if (onboardingNext) onboardingNext.textContent = index === onboardingSteps.length - 1 ? 'Finish' : 'Next';
+}
+function startOnboarding() {
+  if (!onboardingModal) return;
+  onboardingModal.classList.remove('hidden');
+  showOnboardingStep(0);
+}
+function endOnboarding() {
+  if (!onboardingModal) return;
+  onboardingModal.classList.add('hidden');
+  try { localStorage.setItem('mootieOnboarded', 'true'); } catch {}
+}
+
+if (onboardingNext) onboardingNext.addEventListener('click', () => {
+  if (onboardingStep < onboardingSteps.length - 1) showOnboardingStep(onboardingStep + 1);
+  else endOnboarding();
+});
+if (onboardingPrev) onboardingPrev.addEventListener('click', () => {
+  if (onboardingStep > 0) showOnboardingStep(onboardingStep - 1);
+});
+if (helpButton && helpOverlay) {
+  helpButton.addEventListener('click', () => helpOverlay.classList.toggle('hidden'));
+}
+if (closeHelp && helpOverlay) {
+  closeHelp.addEventListener('click', () => helpOverlay.classList.add('hidden'));
+}
