@@ -1,14 +1,23 @@
 // api/delete-file.js
-// Removes a file from the configured vector store.  Requires a DELETE
-// request with a `fileId` query parameter.  Returns { success: true } on
-// success.
+// Removes a file from the configured vector store. Adds CORS + safer param parsing.
+
+function cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
 
 export default async function handler(req, res) {
+  cors(res);
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   if (req.method !== 'DELETE') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
-  const { fileId } = req.query || {};
-  if (!fileId) {
+  const { fileId } = (req.query || {});
+  const id = typeof fileId === 'string' ? fileId : Array.isArray(fileId) ? fileId[0] : null;
+  if (!id) {
     return res.status(400).json({ success: false, error: 'Missing fileId parameter' });
   }
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -20,7 +29,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'Missing VECTOR_STORE_ID' });
   }
   try {
-    const resp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files/${encodeURIComponent(fileId)}`, {
+    const resp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${OPENAI_API_KEY}` }
     });

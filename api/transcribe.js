@@ -1,10 +1,20 @@
 // api/transcribe.js
-// Accepts multipart/form-data containing an "audio" field with a WebM blob.
-// Sends the audio to OpenAI Whisper for transcription and returns the text.
+// Accepts multipart/form-data with "audio" field (WebM) and transcribes via Whisper.
+// Adds CORS handling.
 
 export const config = { api: { bodyParser: false } };
 
+function cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
 export default async function handler(req, res) {
+  cors(res);
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
@@ -17,7 +27,6 @@ export default async function handler(req, res) {
     if (!contentType.includes('multipart/form-data')) {
       return res.status(400).json({ success: false, error: 'Expected multipart/form-data' });
     }
-    // Minimal multipart parser (single file field: "audio")
     const boundaryToken = contentType.split('boundary=')[1];
     if (!boundaryToken) {
       return res.status(400).json({ success: false, error: 'Malformed multipart/form-data (no boundary)' });
@@ -36,7 +45,6 @@ export default async function handler(req, res) {
     }
     const bodyBin = filePart.slice(headerEnd + 4, filePart.lastIndexOf('\r\n'));
     const fileBuffer = Buffer.from(bodyBin, 'binary');
-    // Send WebM directly to Whisper
     const form = new FormData();
     form.append('file', new Blob([fileBuffer], { type: 'audio/webm' }), 'audio.webm');
     form.append('model', 'whisper-1');

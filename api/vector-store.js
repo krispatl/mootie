@@ -1,9 +1,18 @@
 // api/vector-store.js
-// Lists files attached to the configured OpenAI vector store.  Returns
-// an array of objects with id and filename properties.  On any
-// errors or missing configuration the endpoint returns an empty list.
+// Lists files attached to the configured OpenAI vector store. Returns an array of
+// objects with `id` and `name` properties. Adds CORS handling.
+
+function cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
 
 export default async function handler(req, res) {
+  cors(res);
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
@@ -26,7 +35,7 @@ export default async function handler(req, res) {
           headers: { Authorization: `Bearer ${OPENAI_API_KEY}` }
         });
         const fd = await fr.json();
-        return { id: file.id, filename: fd.filename || 'Unnamed file' };
+        return { id: file.id, name: fd.filename || 'Unnamed file' };
       })
     );
     return res.status(200).json({ success: true, data: { vectors: filesWithNames } });
