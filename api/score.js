@@ -1,84 +1,27 @@
 // api/score.js
-// Adds CORS support to the simple heuristic scoring endpoint.
-
-function cors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-}
-
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-  let body;
+  if (req.method !== 'POST') return res.status(405).json({ success:false, error:'Method not allowed' });
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) return res.status(500).json({ success:false, error:'Missing OPENAI_API_KEY' });
   try {
-    body = await parseBody(req);
-  } catch (err) {
-    return res.status(400).json({ success: false, error: 'Invalid JSON body' });
-  }
-  const { text } = body || {};
-  if (!text || typeof text !== 'string') {
-    return res.status(400).json({ success: false, error: 'Missing `text` field' });
-  }
-  try {
-    const metrics = computeScores(text);
-    return res.status(200).json({ success: true, data: metrics });
-  } catch (err) {
-    console.error('score error:', err);
-    return res.status(500).json({ success: false, error: 'Failed to score message' });
-  }
-}
-
-// Parse JSON body
-async function parseBody(req) {
-  if (req.body) return req.body;
-  let raw = '';
-  for await (const chunk of req) raw += chunk;
-  return JSON.parse(raw || '{}');
-}
-
-function computeScores(text) {
-  const sentences = text.split(/[.!?]/).filter(s => s.trim().length > 0);
-  const words = text.split(/\s+/).filter(Boolean);
-  const avgLen = sentences.length ? words.length / sentences.length : words.length;
-  let clarity = Math.max(1, 10 - avgLen / 5);
-  if (clarity > 10) clarity = 10;
-  const structureKeywords = ['first', 'second', 'third', 'next', 'finally', 'step'];
-  let structCount = 0;
-  const lower = text.toLowerCase();
-  structureKeywords.forEach(k => {
-    const re = new RegExp('\\b' + k + '\\b', 'g');
-    structCount += (lower.match(re) || []).length;
-  });
-  let structure = sentences.length ? Math.min(10, (structCount / sentences.length) * 10) : 0;
-  const caseMatches = text.match(/\b\w+\s+v\.\s+\w+/g) || [];
-  let authority = Math.min(10, caseMatches.length * 2 + words.filter(w => /\b[A-Z][a-z]+/.test(w)).length * 0.1);
-  const respKeywords = ['your honor', 'you asked', 'in response', 'responding to'];
-  let respCount = 0;
-  respKeywords.forEach(k => {
-    const re = new RegExp(k, 'gi');
-    respCount += (text.match(re) || []).length;
-  });
-  let responsiveness = Math.min(10, respCount * 2);
-  const persKeywords = ['therefore', 'must', 'should', 'because', 'hence', 'thus'];
-  let persScore = 0;
-  persKeywords.forEach(k => {
-    const re = new RegExp('\\b' + k + '\\b', 'gi');
-    persScore += (text.match(re) || []).length;
-  });
-  let persuasiveness = Math.min(10, persScore * 2);
-  const notes = [
-    clarity > 7 ? 'Clear' : 'Could be clearer',
-    structure > 6 ? 'Well structured' : 'Improve structure',
-    authority > 6 ? 'Authoritative' : 'Cite more authority',
-    responsiveness > 6 ? 'Responsive' : 'Address the bench directly',
-    persuasiveness > 6 ? 'Persuasive' : 'Use stronger connective reasoning'
-  ].join(' · ');
-
-  return { clarity, structure, authority, responsiveness, persuasiveness, notes };
+    let raw=''; for await (const c of req) raw+=c;
+    let { text } = {}; try { ({ text } = JSON.parse(raw||'{}')); } catch {}
+    const prompt = `Score the following answer from 0-10 in five categories and add one coaching note. Return ONLY strict JSON with keys clarity, structure, authority, responsiveness, persuasiveness (numbers) and notes (string).\n\nAnswer: ${text}`;
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST', headers:{ Authorization:`Bearer ${OPENAI_API_KEY}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ model:'gpt-4o-mini', messages:[{role:'system', content:'You are an objective grader. Output strict JSON only.'},{role:'user', content:prompt}], temperature:0.2 })
+    });
+    const j = await r.json();
+    if (!r.ok) return res.status(r.status).json({ success:false, error: j?.error?.message || 'Scoring error', details: j });
+    let parsed={}; try { parsed = JSON.parse(j?.choices?.[0]?.message?.content || '{}'); } catch {}
+    const out = {
+      clarity: Number(parsed.clarity ?? 0),
+      structure: Number(parsed.structure ?? 0),
+      authority: Number(parsed.authority ?? 0),
+      responsiveness: Number(parsed.responsiveness ?? 0),
+      persuasiveness: Number(parsed.persuasiveness ?? 0),
+      notes: (parsed.notes ?? '').toString().slice(0, 500),
+    };
+    return res.status(200).json({ success:true, data: out });
+  } catch (e) { return res.status(500).json({ success:false, error:e?.message || String(e) }); }
 }
