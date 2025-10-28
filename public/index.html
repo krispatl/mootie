@@ -13,7 +13,7 @@
 </head>
 <body>
   <div id="app" class="container">
-    <!-- Top Bar -->
+    <!-- Navigation Header -->
     <header class="navbar" role="banner">
       <div class="nav-brand" aria-label="App brand">
         <button class="logo" id="homeButton" title="Mootie Home" aria-label="Mootie Home">
@@ -28,10 +28,16 @@
           <i class="fas fa-user-graduate"></i>
           <span>Coach Mode</span>
         </div>
+
         <div class="nav-actions">
+          <button id="themeToggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme (Light/Dark)">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+
           <button id="helpButton" class="icon-btn" title="Help" aria-label="Open help">
             <i class="fas fa-circle-question"></i>
           </button>
+
           <button id="debateToggle" class="btn-debate" aria-pressed="false">
             <i class="fas fa-gavel"></i>
             <span>Start Debate</span>
@@ -40,57 +46,80 @@
       </div>
     </header>
 
+    <!-- Main Content -->
     <main class="main-content">
       <!-- Sidebar -->
       <aside class="sidebar" aria-label="Controls and Analytics">
-        <!-- Role Mode -->
+        <!-- Mode Selector -->
         <section class="sidebar-section">
           <h3 class="section-title">Role Mode</h3>
           <div class="mode-selector" role="tablist" aria-label="Role Mode Selector">
             <button class="mode-btn active" data-mode="coach" id="modeCoach" role="tab" aria-selected="true">
-              <i class="fas fa-user-graduate"></i><span>Coach</span>
+              <i class="fas fa-user-graduate"></i>
+              <span>Coach</span>
             </button>
             <button class="mode-btn" data-mode="judge" id="modeJudge" role="tab" aria-selected="false">
-              <i class="fas fa-gavel"></i><span>Judge</span>
+              <i class="fas fa-gavel"></i>
+              <span>Judge</span>
             </button>
             <button class="mode-btn" data-mode="opposition" id="modeOpposition" role="tab" aria-selected="false">
-              <i class="fas fa-people-arrows"></i><span>Opposition</span>
+              <i class="fas fa-people-arrows"></i>
+              <span>Opposition</span>
             </button>
           </div>
         </section>
 
-        <!-- Performance Metrics (classes align with client.js: .value/.fill) -->
+        <!-- Score Dashboard -->
         <section class="sidebar-section">
           <h3 class="section-title">Performance Metrics</h3>
           <div class="score-dashboard" role="region" aria-label="Performance Metrics">
             <div class="score-metric" id="scoreClarity">
-              <div class="metric-header"><span class="metric-label">Clarity</span><span class="value">0.0</span></div>
+              <div class="metric-header">
+                <span class="metric-label">Clarity</span>
+                <span class="value">0.0</span>
+              </div>
               <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="fill" style="width:0%"></div>
+                <div class="fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scoreStructure">
-              <div class="metric-header"><span class="metric-label">Structure</span><span class="value">0.0</span></div>
+              <div class="metric-header">
+                <span class="metric-label">Structure</span>
+                <span class="value">0.0</span>
+              </div>
               <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="fill" style="width:0%"></div>
+                <div class="fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scoreAuthority">
-              <div class="metric-header"><span class="metric-label">Authority</span><span class="value">0.0</span></div>
+              <div class="metric-header">
+                <span class="metric-label">Authority</span>
+                <span class="value">0.0</span>
+              </div>
               <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="fill" style="width:0%"></div>
+                <div class="fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scoreResponsiveness">
-              <div class="metric-header"><span class="metric-label">Responsiveness</span><span class="value">0.0</span></div>
+              <div class="metric-header">
+                <span class="metric-label">Responsiveness</span>
+                <span class="value">0.0</span>
+              </div>
               <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="fill" style="width:0%"></div>
+                <div class="fill" style="width: 0%"></div>
               </div>
             </div>
+
             <div class="score-metric" id="scorePersuasiveness">
-              <div class="metric-header"><span class="metric-label">Persuasiveness</span><span class="value">0.0</span></div>
+              <div class="metric-header">
+                <span class="metric-label">Persuasiveness</span>
+                <span class="value">0.0</span>
+              </div>
               <div class="metric-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="fill" style="width:0%"></div>
+                <div class="fill" style="width: 0%"></div>
               </div>
             </div>
           </div>
@@ -100,15 +129,26 @@
         <section id="debateStatus" class="sidebar-section hidden" aria-live="polite">
           <h3 class="section-title">Debate Session</h3>
           <div class="debate-info">
-            <div class="debate-row"><span class="debate-label">Round</span><span id="roundLabel" class="debate-value">Opening</span></div>
-            <div class="debate-row"><span class="debate-label">Turn</span><span id="turnLabel" class="debate-value">Your Turn</span></div>
-            <div class="debate-row"><span class="debate-label">Time</span><span id="timerLabel" class="debate-value">02:00</span></div>
+            <div class="debate-row">
+              <span class="debate-label">Round</span>
+              <span id="roundLabel" class="debate-value">Opening</span>
+            </div>
+            <div class="debate-row">
+              <span class="debate-label">Turn</span>
+              <span id="turnLabel" class="debate-value">Your Turn</span>
+            </div>
+            <div class="debate-row">
+              <span class="debate-label">Time</span>
+              <span id="timerLabel" class="debate-value">02:00</span>
+            </div>
           </div>
-          <div class="debate-progress" aria-hidden="true"><div id="progressFill" class="progress-fill"></div></div>
+          <div class="debate-progress" aria-hidden="true">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
           <button id="nextRoundBtn" class="hidden" aria-hidden="true"></button>
         </section>
 
-        <!-- Documents -->
+        <!-- Document Management -->
         <section class="sidebar-section">
           <h3 class="section-title">Case Documents</h3>
           <div class="documents-panel" id="dropZone" aria-label="Upload case documents">
@@ -120,9 +160,11 @@
                 </button>
               </div>
             </div>
+
             <ul id="sourceList" class="documents-list">
-              <li class="empty">No sources uploaded</li>
+              <li class="empty">No documents uploaded</li>
             </ul>
+
             <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.md" multiple hidden>
             <div class="drop-hint"><i class="fa-solid fa-upload"></i> Drag & drop files here</div>
           </div>
@@ -133,45 +175,68 @@
           <h3 class="section-title">Session Analytics</h3>
           <div class="analytics-panel">
             <button id="coachFeedbackBtn" class="btn-analytics">
-              <i class="fas fa-chart-line"></i> Get Coach Feedback
+              <i class="fas fa-chart-line"></i>
+              Get Coach Feedback
             </button>
             <button id="exportTranscript" class="btn-analytics">
-              <i class="fas fa-download"></i> Export Transcript
+              <i class="fas fa-download"></i>
+              Export Transcript
             </button>
           </div>
-          <!-- Visible transcript list for your client.js -->
+          <!-- transcript list used by client.js -->
           <div id="transcriptList" class="transcript-list" aria-live="polite"></div>
         </section>
       </aside>
 
-      <!-- Chat Column -->
+      <!-- Chat Area -->
       <section class="chat-container" aria-label="Conversation">
         <div id="messages" class="messages-container" aria-live="polite">
           <div class="welcome-card">
-            <div class="welcome-icon"><i class="fas fa-scale-balanced"></i></div>
+            <div class="welcome-icon">
+              <i class="fas fa-scale-balanced"></i>
+            </div>
             <h2>Welcome to Mootie</h2>
             <p>Your AI Moot Court Coach is ready to help you practice arguments and improve your legal reasoning skills.</p>
             <div class="welcome-tips">
-              <div class="tip"><i class="fas fa-microphone"></i><span>Hold <kbd>Space</kbd> or click mic to record</span></div>
-              <div class="tip"><i class="fas fa-toggle-on"></i><span>Switch between Coach, Judge, and Opposition modes</span></div>
-              <div class="tip"><i class="fas fa-file-arrow-up"></i><span>Upload case documents for reference</span></div>
+              <div class="tip">
+                <i class="fas fa-microphone"></i>
+                <span>Hold <kbd>Space</kbd> or click mic to record</span>
+              </div>
+              <div class="tip">
+                <i class="fas fa-toggle-on"></i>
+                <span>Switch between Coach, Judge, and Opposition modes</span>
+              </div>
+              <div class="tip">
+                <i class="fas fa-file-arrow-up"></i>
+                <span>Upload case documents for reference</span>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Typing Indicator -->
         <div id="typingIndicator" class="typing-indicator hidden" aria-hidden="true">
-          <div class="typing-dots" aria-label="Mootie is typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          <div class="typing-dots" aria-label="Mootie is typing">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
           <span>Mootie is thinking...</span>
         </div>
 
-        <!-- Input -->
+        <!-- Input Area -->
         <div class="input-container">
           <div class="input-wrapper">
             <button id="recordBtn" class="btn-record" title="Hold to record (Spacebar)" aria-label="Hold to record">
               <i class="fas fa-microphone"></i>
             </button>
-            <textarea id="textInput" class="text-input" placeholder="Type your argument or question…" rows="1" aria-label="Message input"></textarea>
+
+            <textarea 
+              id="textInput" 
+              class="text-input" 
+              placeholder="Type your argument or question…" 
+              rows="1"
+              aria-label="Message input"
+            ></textarea>
+
             <button id="sendBtn" class="btn-send" aria-label="Send message">
               <i class="fas fa-paper-plane"></i>
             </button>
@@ -189,7 +254,9 @@
     <div class="modal-content help">
       <div class="help-header">
         <h2 id="helpTitle">Mootie Guide</h2>
-        <button id="closeHelp" class="btn-close" aria-label="Close help"><i class="fas fa-xmark"></i></button>
+        <button id="closeHelp" class="btn-close" aria-label="Close help">
+          <i class="fas fa-xmark"></i>
+        </button>
       </div>
       <div class="help-content">
         <div class="help-section">
@@ -212,7 +279,7 @@
     </div>
   </div>
 
-  <!-- Optional Debate Setup Modal (matches client.js ids) -->
+  <!-- Debate Setup Modal (used by client.js) -->
   <div id="debateSetupModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="debateSetupTitle">
     <div class="modal-content">
       <div class="modal-header">
@@ -243,7 +310,28 @@
     </div>
   </div>
 
-  <!-- Real app logic (no demo code) -->
+  <!-- Theme persistence (no fake app) -->
+  <script>
+    (function initTheme(){
+      try {
+        const saved = localStorage.getItem('mootie-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+      } catch {}
+      const toggle = document.getElementById('themeToggle');
+      if (toggle) {
+        toggle.addEventListener('click', () => {
+          const html = document.documentElement;
+          const t = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          html.setAttribute('data-theme', t);
+          try { localStorage.setItem('mootie-theme', t); } catch {}
+          toggle.innerHTML = t === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+        });
+      }
+    })();
+  </script>
+
+  <!-- Real app logic only -->
   <script src="./client.js"></script>
 </body>
 </html>
