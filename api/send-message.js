@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     // Use the recommended fields for Responses API
     input: userInput,
     instructions: systemPrompt,
-    tools: [{ type: 'file_search' }],
+    tools: [{ type: "file_search" }, { type: 'file_search' }],
     stream: false,
     // Request that citations be included when file_search is used.
     // Some deployments include citations in the output when enabled.
