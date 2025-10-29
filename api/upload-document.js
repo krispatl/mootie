@@ -1,9 +1,9 @@
-import formidable from "formidable";
-import fs from "fs";
+// /api/upload-document.js
+// Works on Vercel serverless runtime — no fs/formidable required
 
 export const config = {
   api: {
-    bodyParser: false, // disable Next.js body parser to handle multipart
+    bodyParser: false, // we’ll manually stream the raw request
   },
 };
 
@@ -12,42 +12,47 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
-  const form = formidable({ multiples: false });
-
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error("Form parse error:", err);
-      return res.status(400).json({ success: false, error: "Form parsing failed" });
+  try {
+    // Parse multipart upload manually using the Web Streams API
+    const contentType = req.headers["content-type"] || "";
+    if (!contentType.startsWith("multipart/form-data")) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Expected multipart/form-data" });
     }
 
-    const file = files.document;
-    if (!file) {
-      return res.status(400).json({ success: false, error: "No file uploaded" });
-    }
+    // Read the raw body into a Blob
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const blob = new Blob(chunks);
 
-    try {
-      // ✅ Send file to OpenAI (example)
-      const stream = fs.createReadStream(file.filepath);
-      const upload = await fetch("https://api.openai.com/v1/files", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: (() => {
-          const formData = new FormData();
-          formData.append("purpose", "assistants");
-          formData.append("file", stream, file.originalFilename);
-          return formData;
-        })(),
+    // Send directly to OpenAI API
+    const openaiRes = await fetch("https://api.openai.com/v1/files", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: (() => {
+        const formData = new FormData();
+        formData.append("purpose", "assistants");
+        formData.append("file", blob, "upload.bin");
+        return formData;
+      })(),
+    });
+
+    const data = await openaiRes.json();
+
+    if (!openaiRes.ok) {
+      console.error("OpenAI upload failed:", data);
+      return res.status(openaiRes.status).json({
+        success: false,
+        error: data.error?.message || "Upload failed",
       });
-
-      const result = await upload.json();
-      if (!upload.ok) throw new Error(result.error?.message || "Upload failed");
-
-      res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      console.error("Upload error:", error);
-      res.status(500).json({ success: false, error: error.message });
     }
-  });
+
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    console.error("Upload error:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
 }
