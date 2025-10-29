@@ -411,21 +411,30 @@ const deletingMap = new Map();
 async function handleUpload(e) {
   const files = Array.from(e.target.files || []);
   if (!files.length) return;
+
   for (const file of files) {
     const formData = new FormData();
-    formData.append('document', file, file.name);
+    formData.append("document", file, file.name);   // ✅ correct key + filename
+
     try {
-      const resp = await fetch('/api/upload-document', { method: 'POST', body: formData });
+      const resp = await fetch("/api/upload-document", {
+        method: "POST",
+        // 🚫 DO NOT set "Content-Type" manually
+        body: formData,
+      });
+
       const out = await resp.json().catch(() => ({}));
-      if (out?.success === false) {
-        addMessage('assistant', `❌ ${file.name}: ${out.error || 'upload failed'}`);
+      if (resp.ok && out.success) {
+        console.log("✅ Uploaded", file.name);
+      } else {
+        console.error("❌", file.name + ":", out.error || `HTTP ${resp.status}`);
       }
     } catch (err) {
-      console.error('upload error:', err);
-      addMessage('assistant', `Failed to upload ${file.name}.`);
+      console.error("🔥 Upload error:", err);
     }
   }
-  if (fileInput) fileInput.value = '';
+
+  if (fileInput) fileInput.value = "";
   await refreshVectorList();
 }
 
