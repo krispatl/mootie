@@ -409,30 +409,22 @@ function stopRecording() {
 const deletingMap = new Map();
 
 async function handleUpload(e) {
-  const files = Array.from(e.target.files || []);
-  if (!files.length) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-  for (const file of files) {
-    const formData = new FormData();
-    formData.append("document", file, file.name);   // ✅ correct key + filename
+  const fd = new FormData();
+  fd.append("file", file, file.name);     // key MUST be "file"
+  fd.append("purpose", "assistants");     // required by API
 
-    try {
-      const resp = await fetch("/api/upload-document", {
-        method: "POST",
-        // 🚫 DO NOT set "Content-Type" manually
-        body: formData,
-      });
+  const res = await fetch("/api/upload-document", {
+    method: "POST",
+    body: fd, // no headers!
+  });
 
-      const out = await resp.json().catch(() => ({}));
-      if (resp.ok && out.success) {
-        console.log("✅ Uploaded", file.name);
-      } else {
-        console.error("❌", file.name + ":", out.error || `HTTP ${resp.status}`);
-      }
-    } catch (err) {
-      console.error("🔥 Upload error:", err);
-    }
-  }
+  const out = await res.json().catch(() => ({}));
+  console.log(out);
+}
+
 
   if (fileInput) fileInput.value = "";
   await refreshVectorList();
