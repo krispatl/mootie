@@ -1,10 +1,5 @@
-// /api/upload-document.js
-// Works on Vercel serverless runtime — no fs/formidable required
-
 export const config = {
-  api: {
-    bodyParser: false, // we’ll manually stream the raw request
-  },
+  api: { bodyParser: false },
 };
 
 export default async function handler(req, res) {
@@ -13,7 +8,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse multipart upload manually using the Web Streams API
     const contentType = req.headers["content-type"] || "";
     if (!contentType.startsWith("multipart/form-data")) {
       return res
@@ -21,36 +15,35 @@ export default async function handler(req, res) {
         .json({ success: false, error: "Expected multipart/form-data" });
     }
 
-    // Read the raw body into a Blob
+    // read entire request into a blob
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const blob = new Blob(chunks);
 
-    // Send directly to OpenAI API
-    const openaiRes = await fetch("https://api.openai.com/v1/files", {
+    // try to recover original filename from the header
+    const match = /filename="([^"]+)"/i.exec(contentType);
+    const filename = match?.[1] || "upload.pdf"; // default fallback
+
+    const formData = new FormData();
+    formData.append("purpose", "assistants");
+    // 👇 use the actual filename so OpenAI sees .pdf, .docx, etc.
+    formData.append("file", blob, filename);
+
+    const upload = await fetch("https://api.openai.com/v1/files", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: (() => {
-        const formData = new FormData();
-        formData.append("purpose", "assistants");
-        formData.append("file", blob, "upload.bin");
-        return formData;
-      })(),
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: formData,
     });
 
-    const data = await openaiRes.json();
-
-    if (!openaiRes.ok) {
-      console.error("OpenAI upload failed:", data);
-      return res.status(openaiRes.status).json({
-        success: false,
-        error: data.error?.message || "Upload failed",
-      });
+    const result = await upload.json();
+    if (!upload.ok) {
+      console.error("OpenAI upload failed:", result);
+      return res
+        .status(upload.status)
+        .json({ success: false, error: result.error?.message || "Upload failed" });
     }
 
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: result });
   } catch (err) {
     console.error("Upload error:", err);
     return res.status(500).json({ success: false, error: err.message });
