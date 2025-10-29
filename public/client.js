@@ -427,24 +427,27 @@ async function handleUpload(e) {
 async function refreshVectorList() {
   if (!sourceList) return;
   try {
-    const res = await fetch('/api/vector-store');
+    const res = await fetch('/api/list-files'); // ✅ always reflects OpenAI's true state
     const out = await res.json().catch(() => ({}));
-    const files = normalizeFiles(out);
+    const files = normalizeFiles(out.files || out.data || []);
     sourceList.innerHTML = '';
+
     if (!files.length) {
-      sourceList.innerHTML = '<li class="empty">No sources uploaded</li>';
+      sourceList.innerHTML = '<li class="empty">No documents uploaded</li>';
       return;
     }
+
     files.forEach(file => {
       const li = document.createElement('li');
       li.className = 'source-row';
-      li.setAttribute('data-file-id', file.id); // crucial for UI removal
+      li.setAttribute('data-file-id', file.id);
       li.innerHTML = `
         <span class="name">${file.name}</span>
-        <button class="delete-btn" title="Delete" aria-label="Delete ${file.name}" data-file-id="${file.id}">×</button>
+        <button class="delete-btn" title="Delete ${file.name}" aria-label="Delete ${file.name}" data-file-id="${file.id}">
+          <i class="fa-solid fa-trash"></i>
+        </button>
       `;
-      const del = li.querySelector('.delete-btn');
-      del.addEventListener('click', async (e) => {
+      li.querySelector('.delete-btn').addEventListener('click', async (e) => {
         const fid = e.currentTarget.getAttribute('data-file-id');
         await deleteFile(fid);
       });
@@ -452,9 +455,10 @@ async function refreshVectorList() {
     });
   } catch (e) {
     console.error('vector list error:', e);
-    sourceList.innerHTML = '<li class="empty">Unable to load sources</li>';
+    sourceList.innerHTML = '<li class="empty">Unable to load documents</li>';
   }
 }
+
 
 async function deleteFile(fileId) {
   console.log('[deleteFile]', fileId);
