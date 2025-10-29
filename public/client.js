@@ -425,40 +425,26 @@ async function handleUpload(e) {
 }
 
 async function refreshVectorList() {
-  if (!sourceList) return;
-  try {
-    const res = await fetch('/api/list-files'); // ✅ always reflects OpenAI's true state
-    const out = await res.json().catch(() => ({}));
-    const files = normalizeFiles(out.files || out.data || []);
-    sourceList.innerHTML = '';
+  const res = await fetch('/api/list-files');
+  const data = await res.json().catch(() => ({}));
 
-    if (!files.length) {
-      sourceList.innerHTML = '<li class="empty">No documents uploaded</li>';
-      return;
+  const container = document.getElementById('sourcesContainer');
+  container.innerHTML = ''; // clear stale list before re-rendering
+
+  if (data?.files?.length) {
+    for (const f of data.files) {
+      const el = document.createElement('div');
+      el.className = 'source-item';
+      el.dataset.fileId = f.id;
+      el.textContent = f.filename || f.id;
+      container.appendChild(el);
     }
-
-    files.forEach(file => {
-      const li = document.createElement('li');
-      li.className = 'source-row';
-      li.setAttribute('data-file-id', file.id);
-      li.innerHTML = `
-        <span class="name">${file.name}</span>
-        <button class="delete-btn" title="Delete ${file.name}" aria-label="Delete ${file.name}" data-file-id="${file.id}">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      `;
-      li.querySelector('.delete-btn').addEventListener('click', async (e) => {
-        const fid = e.currentTarget.getAttribute('data-file-id');
-        await deleteFile(fid);
-      });
-      sourceList.appendChild(li);
-    });
-  } catch (e) {
-    console.error('vector list error:', e);
-    sourceList.innerHTML = '<li class="empty">Unable to load documents</li>';
+  } else {
+    const el = document.createElement('div');
+    el.textContent = 'No files in vector store.';
+    container.appendChild(el);
   }
 }
-
 
 async function deleteFile(fileId) {
   console.log('[deleteFile]', fileId);
