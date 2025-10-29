@@ -403,6 +403,11 @@ function stopRecording() {
 }
 
 // ====================== Uploads / Sources ======================
+// ====================== Uploads / Sources ======================
+
+// prevent duplicate deletes
+const deletingMap = new Map();
+
 async function handleUpload(e) {
   const files = Array.from(e.target.files || []);
   if (!files.length) return;
@@ -413,7 +418,7 @@ async function handleUpload(e) {
       const resp = await fetch('/api/upload-document', { method: 'POST', body: formData });
       const out = await resp.json().catch(() => ({}));
       if (out?.success === false) {
-        addMessage('assistant', `Failed to upload ${file.name}: ${out?.error || 'Unknown error'}`);
+        addMessage('assistant', `❌ ${file.name}: ${out.error || 'upload failed'}`);
       }
     } catch (err) {
       console.error('upload error:', err);
@@ -424,29 +429,11 @@ async function handleUpload(e) {
   await refreshVectorList();
 }
 
-async function refreshVectorList() {
-  const res = await fetch('/api/list-files');
-  const data = await res.json().catch(() => ({}));
+async function deleteFile(fileId, refreshAfter = true) {
+  if (!fileId) return;
+  if (deletingMap.get(fileId)) return;          // guard against double click
+  deletingMap.set(fileId, true);
 
-  const container = document.getElementById('sourcesContainer');
-  container.innerHTML = ''; // clear stale list before re-rendering
-
-  if (data?.files?.length) {
-    for (const f of data.files) {
-      const el = document.createElement('div');
-      el.className = 'source-item';
-      el.dataset.fileId = f.id;
-      el.textContent = f.filename || f.id;
-      container.appendChild(el);
-    }
-  } else {
-    const el = document.createElement('div');
-    el.textContent = 'No files in vector store.';
-    container.appendChild(el);
-  }
-}
-
-async function deleteFile(fileId) {
   console.log('[deleteFile]', fileId);
   const start = performance.now();
   try {
@@ -457,27 +444,60 @@ async function deleteFile(fileId) {
     const data = await res.json().catch(() => ({}));
     console.log('🧩 Full response body:', data);
 
-    if (!res.ok || !data?.success) {
-      console.error('❌ Delete failed:', data?.error || `HTTP ${res.status}`);
-    } else {
+    if (res.ok && data.success) {
       console.log('✅ File deleted successfully.');
-      const row = document.querySelector(`[data-file-id="${fileId}"]`);
-      if (row) {
-        row.remove();
-        console.log(`🧹 Removed element with data-file-id="${fileId}"`);
-      } else {
-        console.warn(`⚠️ No element found for data-file-id="${fileId}"`);
-      }
-      if (typeof refreshVectorList === 'function') {
-        console.log('🔁 Refreshing source list…');
-        await refreshVectorList();
-      }
+      const el = document.querySelector(`[data-file-id="${fileId}"]`);
+      if (el) el.remove();
+      else console.warn(`⚠️ No element found for ${fileId}`);
+
+      if (refreshAfter) await refreshVectorList();
+    } else {
+      console.error('❌ Delete failed:', data?.error || `HTTP ${res.status}`);
     }
   } catch (err) {
     console.error('🔥 Exception during delete:', err);
+  } finally {
+    deletingMap.delete(fileId);
+    console.log('⏱️ Duration:', (performance.now() - start).toFixed(1), 'ms');
   }
-  console.log('⏱️ Duration:', (performance.now() - start).toFixed(1), 'ms');
 }
+
+async function refreshVectorList() {
+  try {
+    const res = await fetch('/api/list-files');
+    const data = await res.json().catch(() => ({}));
+
+    const container = document.getElementById('sourcesContainer');
+    if (!container) return;
+    container.innerHTML = '';                   // clear stale list
+
+    if (data?.files?.length) {
+      console.log(`📁 ${data.files.length} files loaded`);
+      data.files.forEach(f => {
+        const el = document.createElement('div');
+        el.className = 'source-item';
+        el.dataset.fileId = f.id;
+        el.textContent = f.filename || f.id;
+
+        const del = document.createElement('button');
+        del.textContent = '🗑️';
+        del.className = 'delete-btn';
+        del.onclick = () => deleteFile(f.id);
+        el.appendChild(del);
+
+        container.appendChild(el);
+      });
+    } else {
+      const el = document.createElement('div');
+      el.textContent = 'No files in vector store.';
+      el.className = 'no-files';
+      container.appendChild(el);
+    }
+  } catch (err) {
+    console.error('refreshVectorList error:', err);
+  }
+}
+
 
 // ====================== Export & Coach Feedback ======================
 function exportTranscript() {
