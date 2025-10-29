@@ -1,44 +1,54 @@
 // api/upload-document.js
-export const config = { api: { bodyParser: false, sizeLimit: '50mb' } };
+import formidable from "formidable";
+import fs from "fs";
+
+export const config = { api: { bodyParser: false } };
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ success:false, error:'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, error: "Method not allowed" });
+  }
+
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
-  if (!OPENAI_API_KEY) return res.status(500).json({ success:false, error:'Missing OPENAI_API_KEY' });
-  if (!VECTOR_STORE_ID) return res.status(500).json({ success:false, error:'Missing VECTOR_STORE_ID' });
-  try {
-    const ct = req.headers['content-type'] || '';
-    if (!ct.includes('multipart/form-data')) return res.status(400).json({ success:false, error:'Expected multipart/form-data' });
-    const boundaryToken = ct.split('boundary=')[1];
-    if (!boundaryToken) return res.status(400).json({ success:false, error:'Malformed multipart (no boundary)' });
-    const boundary = '--' + boundaryToken;
-    let raw = Buffer.alloc(0);
-    for await (const chunk of req) raw = Buffer.concat([raw, chunk]);
-    const parts = raw.toString('binary').split(boundary);
-    const filePart = parts.find(p => p.includes('name="document"') || p.includes('name="file"'));
-    if (!filePart) return res.status(400).json({ success:false, error:"No file found under 'document' or 'file' field" });
-    const headerEnd = filePart.indexOf('\r\n\r\n');
-    if (headerEnd === -1) return res.status(400).json({ success:false, error:'Malformed multipart section' });
-    const headers = filePart.slice(0, headerEnd);
-    const bodyBin = filePart.slice(headerEnd + 4, filePart.lastIndexOf('\r\n'));
-    const fileBuffer = Buffer.from(bodyBin, 'binary');
-    const filenameMatch = headers.match(/filename="([^"]+)"/i);
-    const filename = filenameMatch ? filenameMatch[1] : 'document.bin';
-    const form = new FormData();
-    form.append('file', new Blob([fileBuffer]), filename);
-    form.append('purpose', 'assistants');
-    const uploadResp = await fetch('https://api.openai.com/v1/files', { method:'POST', headers:{ Authorization:`Bearer ${OPENAI_API_KEY}` }, body: form });
-    const uploadText = await uploadResp.text();
-    if (!uploadResp.ok) return res.status(uploadResp.status).json({ success:false, error:'OpenAI file upload failed', details: uploadText.slice(0,800) });
-    let uploaded; try { uploaded = JSON.parse(uploadText); } catch { uploaded = {}; }
-    const file_id = uploaded?.id;
-    if (!file_id) return res.status(500).json({ success:false, error:'Unexpected upload response', details: uploadText.slice(0,800) });
-    const attachResp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
-      method:'POST', headers:{ Authorization:`Bearer ${OPENAI_API_KEY}`, 'Content-Type':'application/json' }, body: JSON.stringify({ file_id })
-    });
-    const attachText = await attachResp.text();
-    if (!attachResp.ok) return res.status(attachResp.status).json({ success:false, error:'Attach to vector store failed', details: attachText.slice(0,800) });
-    let attached; try { attached = JSON.parse(attachText); } catch { attached = {}; }
-    return res.status(200).json({ success:true, data:{ file_id, vector_status: attached } });
-  } catch (e) { return res.status(500).json({ success:false, error:'Upload failed', details: e?.message || String(e) }); }
+  if (!OPENAI_API_KEY || !VECTOR_STORE_ID) {
+    return res.status(500).json({ success: false, error: "Missing OPENAI_API_KEY or VECTOR_STORE_ID" });
+  }
+
+  const form = formidable({ multiples: false, maxFileSize: 20 * 1024 * 1024 });
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      console.error("Form parse error:", err);
+      return res.status(400).json({ success: false, error: "Upload parse error" });
+    }
+
+    const file = files.document?.[0] || files.document;
+    if (!file || !file.filepath) {
+      return res.status(400).json({ success: false, error: "No file uploaded (field name must be 'document')" });
+    }
+
+    try {
+      const buffer = fs.readFileSync(file.filepath);
+
+      const resp = await fetch(`https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: buffer,
+      });
+
+      if (!resp.ok) {
+        const txt = await resp.text();
+        console.error("OpenAI upload error:", txt);
+        return res.status(resp.status).json({ success: false, error: txt.slice(0, 500) });
+      }
+
+      const data = await resp.json();
+      return res.status(200).json({ success: true, data });
+    } catch (e) {
+      console.error("Upload error:", e);
+      return res.status(500).json({ success: false, error: e.message });
+    } finally {
+      try { fs.unlinkSync(file.filepath); } catch {}
+    }
+  });
 }
