@@ -480,7 +480,8 @@ async function refreshVectorList() {
   try {
     const res = await fetch("/api/list-files");
     const data = await res.json().catch(() => ({}));
-    const container = document.getElementById("sourcesContainer") || sourceList;
+  const container = document.getElementById("sourceList");
+
     if (!container) return;
 
     container.innerHTML = "";
