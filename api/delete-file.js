@@ -34,12 +34,16 @@ export default async function handler(req, res) {
     // list requests, which is why you saw ghost filenames【218982108129933†L2090-L2108】.
     const fileUrl = `https://api.openai.com/v1/files/${encodeURIComponent(fileId)}`;
     const delResp = await fetch(fileUrl, { method: 'DELETE', headers: { Authorization: `Bearer ${OPENAI_API_KEY}` } });
-    if (!delResp.ok) {
-      const txt = await delResp.text();
-      // Even if this fails, we still removed the attachment from the vector store.
-      return res.status(delResp.status).json({ success: false, error: `Delete file failed`, details: txt.slice(0, 500) });
-    }
-    return res.status(200).json({ success: true });
+  // treat "not found" or already-deleted as success
+if (!resp.ok) {
+  const txt = await resp.text();
+  if (resp.status === 404 || txt.toLowerCase().includes("not found")) {
+    return res.status(200).json({ success: true, note: "already deleted" });
+  }
+  return res.status(resp.status).json({ success: false, error: `Delete failed`, details: txt.slice(0, 500) });
+}
+return res.status(200).json({ success: true });
+
   } catch (e) {
     console.error('delete-file error:', e);
     return res.status(500).json({ success: false, error: e.message });
