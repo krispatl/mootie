@@ -405,10 +405,123 @@ function stopRecording() {
 // ====================== Uploads / Sources ======================
 // ====================== Uploads / Sources ======================
 
-if (uploadBtn && fileInput) {
-  uploadBtn.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", handleUpload);
+// ====================== Upload / Delete / Vector Store ======================
+
+// Avoid concurrent delete operations
+const deletingMap = new Map();
+
+/** Upload a file to OpenAI and attach to the vector store */
+async function handleUpload(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+
+  for (const file of files) {
+    try {
+      const fd = new FormData();
+      fd.append("file", file, file.name);
+      fd.append("purpose", "assistants");
+
+      addMessage("assistant", `📤 Uploading ${file.name}...`);
+
+      const res = await fetch("/api/upload-document", {
+        method: "POST",
+        body: fd, // no manual headers — browser sets multipart/form-data boundary
+      });
+
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok || out.error) {
+        console.error("❌ Upload failed:", out);
+        addMessage("assistant", `❌ ${file.name}: ${out?.error?.message || "Upload failed."}`);
+      } else {
+        console.log("✅ Upload success:", out);
+        addMessage("assistant", `✅ Uploaded ${file.name}`);
+      }
+    } catch (err) {
+      console.error("🔥 Upload error:", err);
+      addMessage("assistant", `❌ ${file.name}: Upload error.`);
+    }
+  }
+
+  e.target.value = "";
+  await refreshVectorList();
 }
+
+/** Delete file from both vector store and OpenAI storage */
+async function deleteFile(fileId, refreshAfter = true) {
+  if (!fileId) return;
+  if (deletingMap.get(fileId)) return;
+  deletingMap.set(fileId, true);
+
+  console.log("[deleteFile]", fileId);
+  try {
+    const res = await fetch(`/api/delete-file?fileId=${encodeURIComponent(fileId)}`, {
+      method: "DELETE",
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      console.log("✅ Deleted successfully:", fileId);
+      const el = document.querySelector(`[data-file-id="${fileId}"]`);
+      if (el) el.remove();
+      if (refreshAfter) await refreshVectorList();
+    } else {
+      console.error("❌ Delete failed:", data?.error || `HTTP ${res.status}`);
+      addMessage("assistant", `⚠️ Delete failed for ${fileId}`);
+    }
+  } catch (err) {
+    console.error("🔥 Exception during delete:", err);
+  } finally {
+    deletingMap.delete(fileId);
+  }
+}
+
+/** Fetch and render the list of vector store files */
+async function refreshVectorList() {
+  try {
+    const res = await fetch("/api/list-files");
+    const data = await res.json().catch(() => ({}));
+    const container = document.getElementById("sourcesContainer") || sourceList;
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (data?.files?.length) {
+      addMessage("assistant", `📁 Loaded ${data.files.length} file(s) in vector store.`);
+
+      data.files.forEach((f) => {
+        const el = document.createElement("div");
+        el.className = "source-item";
+        el.dataset.fileId = f.id;
+
+        const label = document.createElement("span");
+        label.textContent = f.filename || f.name || f.id;
+        el.appendChild(label);
+
+        const del = document.createElement("button");
+        del.textContent = "🗑️";
+        del.className = "delete-btn";
+        del.onclick = () => deleteFile(f.id);
+        el.appendChild(del);
+
+        container.appendChild(el);
+      });
+    } else {
+      const el = document.createElement("div");
+      el.className = "no-files";
+      el.textContent = "No files in vector store.";
+      container.appendChild(el);
+    }
+  } catch (err) {
+    console.error("refreshVectorList error:", err);
+    addMessage("assistant", "⚠️ Could not load vector store files.");
+  }
+}
+
+// Expose to global scope so event listeners can see them
+window.handleUpload = handleUpload;
+window.deleteFile = deleteFile;
+window.refreshVectorList = refreshVectorList;
+
 
 // ====================== Export & Coach Feedback ======================
 function exportTranscript() {
