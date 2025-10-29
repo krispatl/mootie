@@ -1,66 +1,63 @@
-// ✅ FINAL WORKING VERSION — Vercel + Next.js API route (Node runtime)
-// handles multipart/form-data uploads safely and keeps filename extensions
-
+// pages/api/upload-document.js
 import formidable from "formidable";
 import fs from "fs";
 import FormData from "form-data";
 
-export const config = {
-  api: { bodyParser: false }, // let formidable handle multipart
-};
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
+  if (req.method !== "POST")
     return res.status(405).json({ success: false, error: "Method not allowed" });
-  }
 
-  // parse multipart upload
   const form = formidable({ multiples: false, keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error("❌ Form parse error:", err);
-      return res.status(400).json({ success: false, error: "Form parse failed" });
-    }
+    if (err) return res.status(400).json({ success: false, error: "Form parse failed" });
 
     const file = Array.isArray(files.document) ? files.document[0] : files.document;
-    if (!file) {
-      return res.status(400).json({ success: false, error: "No file uploaded" });
-    }
+    if (!file) return res.status(400).json({ success: false, error: "No file uploaded" });
 
     const path = file.filepath || file.path;
-    if (!path) {
-      console.error("❌ Missing file path:", file);
-      return res.status(400).json({ success: false, error: "Upload path not found" });
-    }
+    const filename = file.originalFilename || "upload.pdf";
+    const { OPENAI_API_KEY, VECTOR_STORE_ID } = process.env;
+
+    if (!OPENAI_API_KEY || !VECTOR_STORE_ID)
+      return res.status(500).json({ success: false, error: "Missing env vars" });
 
     try {
-      // build form to send to OpenAI
-      const openaiForm = new FormData();
-      openaiForm.append("purpose", "assistants");
-      openaiForm.append("file", fs.createReadStream(path), file.originalFilename || "upload.pdf");
+      // 1️⃣ Upload to /v1/files
+      const uploadForm = new FormData();
+      uploadForm.append("purpose", "assistants");
+      uploadForm.append("file", fs.createReadStream(path), filename);
 
-      const uploadRes = await fetch("https://api.openai.com/v1/files", {
+      const fileRes = await fetch("https://api.openai.com/v1/files", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: openaiForm,
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: uploadForm,
       });
 
-      const result = await uploadRes.json();
+      const fileData = await fileRes.json();
+      if (!fileRes.ok) return res.status(fileRes.status).json(fileData);
 
-      if (!uploadRes.ok) {
-        console.error("❌ OpenAI upload failed:", result);
-        return res
-          .status(uploadRes.status)
-          .json({ success: false, error: result.error?.message || "Upload failed" });
-      }
+      // 2️⃣ Attach to your vector store
+      const attachRes = await fetch(
+        `https://api.openai.com/v1/vector_stores/${VECTOR_STORE_ID}/files`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ file_id: fileData.id }),
+        }
+      );
 
-      console.log(`✅ Uploaded ${file.originalFilename} successfully.`);
-      return res.status(200).json({ success: true, data: result });
+      const attachData = await attachRes.json();
+      if (!attachRes.ok) return res.status(attachRes.status).json(attachData);
+
+      return res.status(200).json({ success: true, data: attachData });
     } catch (e) {
-      console.error("🔥 Upload exception:", e);
+      console.error("🔥 Upload error:", e);
       return res.status(500).json({ success: false, error: e.message });
     }
   });
