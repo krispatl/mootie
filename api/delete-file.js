@@ -6,25 +6,30 @@ export default async function handler(req, res) {
   if (req.method !== "DELETE") {
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
+
   const { fileId } = req.query;
   if (!fileId) return res.status(400).json({ success: false, error: "Missing fileId" });
 
+  const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
   try {
-    // 1. Remove from vector store
-    const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
+    // Attempt to remove from vector store first
     if (VECTOR_STORE_ID) {
       try {
         await client.vectorStores.files.del(VECTOR_STORE_ID, fileId);
       } catch (e) {
-        console.warn("Vector store delete warning:", e.message);
+        console.warn("⚠️ Could not delete from vector store:", e.message);
       }
     }
 
-    // 2. Remove from OpenAI file storage
+    // Then delete from OpenAI file storage if it still exists
     try {
       await client.files.del(fileId);
     } catch (e) {
-      if (!/not found/i.test(e.message)) throw e;
+      if (e.status === 404) {
+        console.log("🧹 File already gone:", fileId);
+      } else {
+        throw e;
+      }
     }
 
     return res.status(200).json({ success: true });
