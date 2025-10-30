@@ -1,18 +1,36 @@
-import OpenAI from "openai";
 export const config = { runtime: "nodejs" };
+import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
+
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export default async function handler(req, res) {
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const id = process.env.VECTOR_STORE_ID;
-    if (!id) return res.status(500).json({ success: false, error: "Missing VECTOR_STORE_ID" });
+    if (req.method !== "POST") {
+      return res.status(405).json({ success: false, error: "Method not allowed" });
+    }
 
-    const form = await req.formData();
-    const file = form.get("file");
-    if (!file) return res.status(400).json({ success: false, error: "No file provided" });
+    const formData = await req.formData();
+    const file = formData.get("file");
+    if (!file) {
+      return res.status(400).json({ success: false, error: "No file uploaded" });
+    }
 
-    const upload = await openai.vectorStores.fileBatches.uploadAndPoll(id, { files: [file] });
-    return res.status(200).json({ success: true, data: upload });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const tempPath = path.join("/tmp", file.name);
+    await fs.promises.writeFile(tempPath, buffer);
+
+    const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
+    if (!VECTOR_STORE_ID) {
+      return res.status(400).json({ success: false, error: "Missing VECTOR_STORE_ID" });
+    }
+
+    const uploaded = await client.vectorStores.fileBatches.uploadAndPoll(VECTOR_STORE_ID, {
+      files: [fs.createReadStream(tempPath)]
+    });
+
+    return res.status(200).json({ success: true, result: uploaded });
   } catch (err) {
     console.error("upload-document error:", err);
     return res.status(500).json({ success: false, error: err.message });
