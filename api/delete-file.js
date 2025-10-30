@@ -1,28 +1,24 @@
-// pages/api/delete-file.js
 import OpenAI from "openai";
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+export const config = { runtime: "nodejs" };
 
 export default async function handler(req, res) {
   try {
-    if (req.method !== "DELETE") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-    const { fileId } = req.query;
-    if (!fileId) return res.status(400).json({ error: "Missing fileId" });
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const { fileId } = req.query || {};
 
-    // Remove from vector store first if needed
-    if (process.env.VECTOR_STORE_ID) {
-      try {
-        await openai.beta.vectorStores.files.del(process.env.VECTOR_STORE_ID, fileId);
-      } catch (e) {
-        console.warn("Not in vector store:", e.message);
-      }
-    }
+    if (!fileId)
+      return res.status(400).json({ success: false, error: "Missing fileId" });
 
-    await openai.files.del(fileId);
-    res.status(200).json({ success: true });
+    const vectorStoreId = process.env.VECTOR_STORE_ID;
+    if (!vectorStoreId)
+      return res.status(500).json({ success: false, error: "VECTOR_STORE_ID missing" });
+
+    await client.vectorStores.files.del(vectorStoreId, fileId);
+
+    res.status(200).json({ success: true, deleted: fileId });
   } catch (err) {
     console.error("delete-file error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 }
