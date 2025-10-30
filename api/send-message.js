@@ -1,102 +1,160 @@
-// /api/send-message.js
-// Mootie backend: full mode-aware persona + file_search integration
+// api/send-message.js
+// Generates a response from the Mootie assistant using the OpenAI Responses API.
+// Supports optional file_search grounding via a configured Vector Store.
+// Adds CORS and robust parsing for both Vercel (req.body present) and raw streams.
 
-import OpenAI from "openai";
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// ✅ Use modern runtime syntax for Vercel
-export const config = {
-  runtime: "nodejs",
-};
+function cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
 
 export default async function handler(req, res) {
+  cors(res);
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  let body;
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ success: false, error: "Method not allowed" });
-    }
+    body = req.body ?? await parseJSON(req);
+  } catch {
+    return res.status(400).json({ success: false, error: 'Invalid JSON body' });
+  }
 
-    const { text, mode } = req.body || {};
-    if (!text) {
-      return res.status(400).json({ success: false, error: "Missing text input." });
-    }
+  const userInput = body.text || body.message || body.prompt || '';
+  const mode = body.mode || 'coach';
+  if (!userInput) {
+    return res.status(400).json({ success: false, error: 'Missing text' });
+  }
 
-    const vectorStoreId = process.env.VECTOR_STORE_ID;
-    if (!vectorStoreId) {
-      return res
-        .status(500)
-        .json({ success: false, error: "VECTOR_STORE_ID not defined in environment." });
-    }
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const VECTOR_STORE_ID = process.env.VECTOR_STORE_ID;
+  const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  if (!OPENAI_API_KEY) {
+    return res.status(500).json({ success: false, error: 'Missing OPENAI_API_KEY' });
+  }
 
-    // 🎯 Core Mootie System Prompt
-    const basePrompt = `
-You are **Mootie**, an advanced AI Moot Court Coach.
-You help law students, advocates, and professionals improve rhetorical reasoning and oral argumentation.
+  const systemPrompt = getSystemPrompt(mode);
 
-Be articulate, fair, structured, and insightful. Reference uploaded documents when relevant.
-Always provide concise yet thoughtful reasoning. Adapt your tone and purpose based on mode.
-    `.trim();
+  // Build Responses API payload
+  const requestBody = {
+    model: OPENAI_MODEL,
+    // Use the recommended fields for Responses API
+    input: userInput,
+    instructions: systemPrompt,
+    tools: [{ type: 'file_search' }],
+    stream: false,
+    // Request that citations be included when file_search is used.
+    // Some deployments include citations in the output when enabled.
+    // (If not present, we simply won't show them.)
+    metadata: { app: 'mootie' }
+  };
 
-    // 🎭 Mode-specific behavior
-    const modePrompts = {
-      coach: `COACH MODE — Encouraging mentor. Give constructive advice and feedback on logic, clarity, and delivery.`,
-      judge: `JUDGE MODE — Neutral evaluator. Analyze both sides, render concise judgments, and highlight legal reasoning strengths or weaknesses.`,
-      opposition: `OPPOSITION MODE — Critical counterpart. Present well-reasoned counterarguments to challenge the user’s position.`,
+  if (VECTOR_STORE_ID) {
+    requestBody.tool_resources = {
+      file_search: { vector_store_ids: [VECTOR_STORE_ID] }
     };
+  }
 
-    const activePrompt = `${basePrompt}\n\n${modePrompts[mode] || modePrompts.coach}`;
-
-    // 🧠 Use GPT-5 (or GPT-4.1 if necessary)
-    const response = await client.responses.create({
-      model: "gpt-5",
-      input: [
-        { role: "system", content: activePrompt },
-        { role: "user", content: text },
-      ],
-      tools: [
-        {
-          type: "file_search",
-          vector_store_ids: [vectorStoreId],
-          max_num_results: 4,
-        },
-      ],
-      include: ["file_search_call.results"],
-      metadata: { mode },
+  try {
+    const resp = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
     });
 
-    // 🗣️ Extract main text
-    let outputText = response.output_text;
-    if (!outputText && response.output?.length) {
-      const msg = response.output.find((o) => o.type === "message");
-      const textPart = msg?.content?.find((c) => c.type === "output_text");
-      outputText = textPart?.text || "No textual response.";
+    const result = await resp.json();
+    if (!resp.ok) {
+      return res.status(resp.status).json({ success: false, error: result?.error?.message || 'OpenAI error', details: result });
     }
 
-    // 📚 Extract file references
-    const refs = [];
-    for (const o of response.output || []) {
-      if (o.type === "message" && Array.isArray(o.content)) {
-        for (const c of o.content) {
-          if (c.annotations) {
-            for (const a of c.annotations) {
-              if (a.type === "file_citation") refs.push(a.filename || a.file_id);
-            }
-          }
-        }
+    // Robust extraction of assistant text
+    let outText = '';
+    // 1) Some responses expose top-level `output_text` (SDKs).
+    if (typeof result.output_text === 'string' && result.output_text.trim()) {
+      outText = result.output_text;
+    }
+    // 2) Fallback: look inside `output` array -> message -> content -> output_text
+    if (!outText && Array.isArray(result.output)) {
+      const msg = result.output.find(o => o.type === 'message');
+      if (msg && Array.isArray(msg.content)) {
+        const textChunk = msg.content.find(c => c.type === 'output_text' && typeof c.text === 'string');
+        if (textChunk) outText = textChunk.text;
       }
+    }
+    // 3) Fallback to `content` fields if present
+    if (!outText && typeof result.content === 'string') {
+      outText = result.content;
+    }
+    if (!outText) outText = 'No response.';
+
+    // Parse bracket-style citations like [1], [2]
+    const citations = [];
+    (outText.match(/\[(\d+)\]/g) || []).forEach(m => {
+      const n = m.replace(/\[|\]/g, '');
+      if (!citations.includes(n)) citations.push(n);
+    });
+
+    // Optional TTS
+    let audioBase64 = null;
+    try {
+      const voice = pickVoice(mode);
+      const ttsResp = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ model: 'tts-1', input: outText, voice, response_format: 'mp3' })
+      });
+      if (ttsResp.ok) {
+        const buf = Buffer.from(await ttsResp.arrayBuffer());
+        audioBase64 = buf.toString('base64');
+      }
+    } catch (e) {
+      console.error('TTS failed:', e?.message || e);
     }
 
     return res.status(200).json({
       success: true,
-      data: {
-        assistantResponse: outputText,
-        references: [...new Set(refs)],
-      },
+      data: { assistantResponse: outText, assistantAudio: audioBase64, references: citations }
     });
   } catch (err) {
-    console.error("send-message error:", err);
-    res.status(500).json({
-      success: false,
-      error: err?.response?.data || err.message || "Failed to generate response.",
-    });
+    console.error('send-message error:', err?.message || err);
+    return res.status(500).json({ success: false, error: 'Error generating response.' });
+  }
+}
+
+async function parseJSON(req) {
+  let raw = '';
+  for await (const chunk of req) raw += chunk;
+  return JSON.parse(raw || '{}');
+}
+
+function getSystemPrompt(mode) {
+  switch (mode) {
+    case 'judge':
+      return 'You are Mootie, a stern judge in a moot court. Ask probing questions, challenge unsupported claims, and provide rigorous critique. Keep a professional tone and avoid fluff.';
+    case 'opposition':
+      return 'You are Mootie, representing opposing counsel. Respond with counterarguments and adversarial reasoning. Point out logical flaws and bring up alternative precedents.';
+    case 'coach':
+    default:
+      return 'You are Mootie, a constructive moot court coach. Offer helpful feedback, highlight strengths and weaknesses, and encourage improvement in clarity, structure, authority and persuasiveness.';
+  }
+}
+
+function pickVoice(mode) {
+  switch (mode) {
+    case 'judge': return 'alloy';
+    case 'opposition': return 'nova';
+    case 'coach':
+    default: return 'echo';
   }
 }
