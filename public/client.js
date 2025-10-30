@@ -1,5 +1,5 @@
 // client.js
-// Mootie MVP front-end — Chat, Uploads, Voice Input, Scoring, TTS Playback
+// Mootie MVP front-end — Chat, Uploads, Voice Input, Scoring, and TTS Playback
 
 // ====================== Global State ======================
 const state = {
@@ -143,9 +143,9 @@ function applyMode(mode) {
     btn.classList.toggle("active", btn.dataset?.mode === mode || btn.id?.toLowerCase().includes(mode));
   });
   let color;
-  if (mode === "judge") color = getComputedStyle(document.documentElement).getPropertyValue("--judge-color") || "#7dd3fc";
-  else if (mode === "opposition") color = getComputedStyle(document.documentElement).getPropertyValue("--opposition-color") || "#a78bfa";
-  else color = getComputedStyle(document.documentElement).getPropertyValue("--coach-color") || "#7dd3fc";
+  if (mode === "judge") color = "#7dd3fc";
+  else if (mode === "opposition") color = "#a78bfa";
+  else color = "#7dd3fc";
   document.documentElement.style.setProperty("--accent", color.trim());
   if (sessionInfo) sessionInfo.textContent = `Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
 }
@@ -249,12 +249,38 @@ async function handleSend() {
     addMessage("assistant", reply, references);
     if (reply) {
       await scoreMessage(reply);
-      await playTTS(reply);
+      await requestTTS(reply);
     }
   } catch (e) {
     console.error("send error:", e);
     showTyping(false);
     addMessage("assistant", "An error occurred while contacting the server.");
+  }
+}
+
+// ====================== TTS Playback ======================
+async function requestTTS(text) {
+  try {
+    const ttsRes = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voice: "alloy", format: "mp3" })
+    });
+    const data = await ttsRes.json();
+    if (data?.audio) {
+      tryPlayAudio(data.audio);
+    }
+  } catch (err) {
+    console.warn("TTS error:", err);
+  }
+}
+
+function tryPlayAudio(base64) {
+  try {
+    const audio = new Audio("data:audio/mp3;base64," + base64);
+    audio.play().catch(() => {});
+  } catch (e) {
+    console.error("audio playback error:", e);
   }
 }
 
@@ -348,13 +374,11 @@ async function handleUpload(e) {
       const res = await fetch("/api/upload-document", { method: "POST", body: fd });
       const out = await res.json().catch(() => ({}));
       if (!res.ok || out.error) {
-        console.error("❌ Upload failed:", out);
         addMessage("assistant", `❌ ${file.name}: ${out?.error?.message || "Upload failed."}`);
       } else {
         addMessage("assistant", `✅ Uploaded ${file.name}`);
       }
     } catch (err) {
-      console.error("🔥 Upload error:", err);
       addMessage("assistant", `❌ ${file.name}: Upload error.`);
     }
   }
@@ -395,7 +419,6 @@ async function refreshVectorList() {
     container.innerHTML = "";
 
     if (data?.files?.length) {
-      addMessage("assistant", `📁 Loaded ${data.files.length} file(s) in vector store.`);
       data.files.forEach(f => {
         const el = document.createElement("div");
         el.className = "source-item";
@@ -424,10 +447,6 @@ async function refreshVectorList() {
     addMessage("assistant", "⚠️ Could not load vector store files.");
   }
 }
-
-window.handleUpload = handleUpload;
-window.deleteFile = deleteFile;
-window.refreshVectorList = refreshVectorList;
 
 // ====================== Export & Coach Feedback ======================
 function exportTranscript() {
@@ -468,24 +487,5 @@ async function getCoachFeedback() {
   } catch (err) {
     console.error("coach feedback error:", err);
     addMessage("assistant", "Failed to fetch coach feedback.");
-  }
-}
-
-// ====================== TTS Playback ======================
-async function playTTS(text) {
-  if (!text) return;
-  try {
-    const response = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice: "alloy" })
-    });
-    if (!response.ok) throw new Error(`TTS request failed: ${response.status}`);
-    const blob = await response.blob();
-    const audioUrl = URL.createObjectURL(blob);
-    const audio = new Audio(audioUrl);
-    audio.play();
-  } catch (err) {
-    console.error("TTS playback error:", err);
   }
 }
